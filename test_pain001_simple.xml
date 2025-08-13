@@ -1,0 +1,60 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<Document xmlns="urn:iso:std:iso:20022:tech:xsd:pain.001.001.03">
+    <CstmrCdtTrfInitn>
+        <GrpHdr>
+            <MsgId>REF1755009126686</MsgId>
+            <CreDtTm>2025-08-25T12:00:00</CreDtTm>
+            <NbOfTxs>1</NbOfTxs>
+            <CtrlSum>1000.00</CtrlSum>
+            <InitgPty>
+                <Nm>DEBITOR NAME</Nm>
+            </InitgPty>
+        </GrpHdr>
+        <PmtInf>
+            <PmtInfId>PmtInf001</PmtInfId>
+            <PmtMtd>TRF</PmtMtd>
+            <ReqdExctnDt>2025-08-25</ReqdExctnDt>
+            <Dbtr>
+                <Nm>DEBITOR NAME</Nm>
+            </Dbtr>
+            <DbtrAcct>
+                <Id>
+                    <IBAN>MA64011580000001006000000000</IBAN>
+                </Id>
+                <Ccy>EUR</Ccy>
+            </DbtrAcct>
+            <DbtrAgt>
+                <FinInstnId>
+                    <BIC>BMCEMAMCXXX</BIC>
+                </FinInstnId>
+            </DbtrAgt>
+            <ChrgBr>SHAR</ChrgBr>
+            <CdtTrfTxInf>
+                <PmtId>
+                    <InstrId>TXN001</InstrId>
+                    <EndToEndId>E2E001</EndToEndId>
+                </PmtId>
+                <Amt>
+                    <InstdAmt Ccy="EUR">1000.00</InstdAmt>
+                </Amt>
+                <CdtrAgt>
+                    <FinInstnId>
+                        <BIC>BANKFRPPXXX</BIC>
+                    </FinInstnId>
+                </CdtrAgt>
+                <Cdtr>
+                    <Nm>CREDITOR NAME</Nm>
+                </Cdtr>
+                <CdtrAcct>
+                    <Id>
+                        <IBAN>FR1420041010050500013M02606</IBAN>
+                    </Id>
+                </CdtrAcct>
+                <RmtInf>
+                    <Ustrd>Paiement facture 12345</Ustrd>
+                </RmtInf>
+            </CdtTrfTxInf>
+        </PmtInf>
+    </CstmrCdtTrfInitn>
+</Document>
+

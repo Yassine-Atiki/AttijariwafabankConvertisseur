@@ -1,0 +1,236 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<Document xmlns="urn:iso:std:iso:20022:tech:xsd:pain.001.001.03">
+    <CstmrCdtTrfInitn>
+        <GrpHdr>
+            <MsgId>MSG20250812001</MsgId>
+            <CreDtTm>2025-08-12T14:30:00</CreDtTm>
+            <NbOfTxs>3</NbOfTxs>
+            <CtrlSum>25500.00</CtrlSum>
+            <InitgPty>
+                <Nm>Attijariwafa Bank</Nm>
+                <Id>
+                    <OrgId>
+                        <BICOrBEI>ATIJMAMC</BICOrBEI>
+                    </OrgId>
+                </Id>
+            </InitgPty>
+        </GrpHdr>
+        <PmtInf>
+            <PmtInfId>PMT20250812001</PmtInfId>
+            <PmtMtd>TRF</PmtMtd>
+            <BtchBookg>false</BtchBookg>
+            <NbOfTxs>3</NbOfTxs>
+            <CtrlSum>25500.00</CtrlSum>
+            <PmtTpInf>
+                <InstrPrty>NORM</InstrPrty>
+                <SvcLvl>
+                    <Cd>SEPA</Cd>
+                </SvcLvl>
+            </PmtTpInf>
+            <ReqdExctnDt>2025-08-13</ReqdExctnDt>
+            <Dbtr>
+                <Nm>Entreprise ABC SARL</Nm>
+                <PstlAdr>
+                    <Ctry>MA</Ctry>
+                    <AdrLine>123 Avenue Hassan II</AdrLine>
+                    <AdrLine>Casablanca, Maroc</AdrLine>
+                </PstlAdr>
+                <Id>
+                    <OrgId>
+                        <Othr>
+                            <Id>RC123456</Id>
+                        </Othr>
+                    </OrgId>
+                </Id>
+            </Dbtr>
+            <DbtrAcct>
+                <Id>
+                    <IBAN>MA64011519000001205000000161</IBAN>
+                </Id>
+                <Ccy>MAD</Ccy>
+                <Nm>Compte Principal</Nm>
+            </DbtrAcct>
+            <DbtrAgt>
+                <FinInstnId>
+                    <BIC>ATIJMAMC</BIC>
+                    <Nm>Attijariwafa Bank</Nm>
+                    <PstlAdr>
+                        <Ctry>MA</Ctry>
+                        <AdrLine>2 Boulevard Moulay Youssef</AdrLine>
+                        <AdrLine>Casablanca, Maroc</AdrLine>
+                    </PstlAdr>
+                </FinInstnId>
+            </DbtrAgt>
+            <ChrgBr>SHAR</ChrgBr>
+
+            <!-- Transaction 1 -->
+            <CdtTrfTxInf>
+                <PmtId>
+                    <InstrId>INSTR001</InstrId>
+                    <EndToEndId>E2E001-FAC2025001</EndToEndId>
+                </PmtId>
+                <PmtTpInf>
+                    <InstrPrty>NORM</InstrPrty>
+                    <CtgyPurp>
+                        <Cd>SUPP</Cd>
+                    </CtgyPurp>
+                </PmtTpInf>
+                <Amt>
+                    <InstdAmt Ccy="MAD">10000.00</InstdAmt>
+                </Amt>
+                <ChrgBr>SHAR</ChrgBr>
+                <CdtrAgt>
+                    <FinInstnId>
+                        <BIC>BMCEMAMC</BIC>
+                        <Nm>BMCE Bank</Nm>
+                        <PstlAdr>
+                            <Ctry>MA</Ctry>
+                            <AdrLine>140 Avenue Hassan II</AdrLine>
+                            <AdrLine>Casablanca, Maroc</AdrLine>
+                        </PstlAdr>
+                    </FinInstnId>
+                </CdtrAgt>
+                <Cdtr>
+                    <Nm>Fournisseur XYZ SARL</Nm>
+                    <PstlAdr>
+                        <Ctry>MA</Ctry>
+                        <AdrLine>456 Rue Ibn Tachfine</AdrLine>
+                        <AdrLine>Rabat, Maroc</AdrLine>
+                    </PstlAdr>
+                    <Id>
+                        <OrgId>
+                            <Othr>
+                                <Id>RC789012</Id>
+                            </Othr>
+                        </OrgId>
+                    </Id>
+                </Cdtr>
+                <CdtrAcct>
+                    <Id>
+                        <IBAN>MA64007007000000000000012345</IBAN>
+                    </Id>
+                    <Ccy>MAD</Ccy>
+                </CdtrAcct>
+                <Purp>
+                    <Cd>SUPP</Cd>
+                </Purp>
+                <RmtInf>
+                    <Ustrd>Paiement facture N° FAC-2025-001 du 10/08/2025</Ustrd>
+                </RmtInf>
+            </CdtTrfTxInf>
+
+            <!-- Transaction 2 -->
+            <CdtTrfTxInf>
+                <PmtId>
+                    <InstrId>INSTR002</InstrId>
+                    <EndToEndId>E2E002-SERV2025008</EndToEndId>
+                </PmtId>
+                <PmtTpInf>
+                    <InstrPrty>HIGH</InstrPrty>
+                    <CtgyPurp>
+                        <Cd>OTHR</Cd>
+                    </CtgyPurp>
+                </PmtTpInf>
+                <Amt>
+                    <InstdAmt Ccy="MAD">7500.00</InstdAmt>
+                </Amt>
+                <ChrgBr>SHAR</ChrgBr>
+                <CdtrAgt>
+                    <FinInstnId>
+                        <BIC>CIHBMAMC</BIC>
+                        <Nm>CIH Bank</Nm>
+                        <PstlAdr>
+                            <Ctry>MA</Ctry>
+                            <AdrLine>187 Avenue Mohamed V</AdrLine>
+                            <AdrLine>Casablanca, Maroc</AdrLine>
+                        </PstlAdr>
+                    </FinInstnId>
+                </CdtrAgt>
+                <Cdtr>
+                    <Nm>Services Informatiques Pro</Nm>
+                    <PstlAdr>
+                        <Ctry>MA</Ctry>
+                        <AdrLine>789 Boulevard Zerktouni</AdrLine>
+                        <AdrLine>Casablanca, Maroc</AdrLine>
+                    </PstlAdr>
+                    <Id>
+                        <OrgId>
+                            <Othr>
+                                <Id>RC345678</Id>
+                            </Othr>
+                        </OrgId>
+                    </Id>
+                </Cdtr>
+                <CdtrAcct>
+                    <Id>
+                        <IBAN>MA64230030000000000000067890</IBAN>
+                    </Id>
+                    <Ccy>MAD</Ccy>
+                </CdtrAcct>
+                <Purp>
+                    <Cd>CBFF</Cd>
+                </Purp>
+                <RmtInf>
+                    <Ustrd>Prestations de services informatiques - Mois d'août 2025</Ustrd>
+                </RmtInf>
+            </CdtTrfTxInf>
+
+            <!-- Transaction 3 -->
+            <CdtTrfTxInf>
+                <PmtId>
+                    <InstrId>INSTR003</InstrId>
+                    <EndToEndId>E2E003-SAL2025008</EndToEndId>
+                </PmtId>
+                <PmtTpInf>
+                    <InstrPrty>NORM</InstrPrty>
+                    <CtgyPurp>
+                        <Cd>SALA</Cd>
+                    </CtgyPurp>
+                </PmtTpInf>
+                <Amt>
+                    <InstdAmt Ccy="MAD">8000.00</InstdAmt>
+                </Amt>
+                <ChrgBr>DEBT</ChrgBr>
+                <CdtrAgt>
+                    <FinInstnId>
+                        <BIC>SGMBMAMC</BIC>
+                        <Nm>Société Générale Maroc</Nm>
+                        <PstlAdr>
+                            <Ctry>MA</Ctry>
+                            <AdrLine>55 Boulevard Abdelmoumen</AdrLine>
+                            <AdrLine>Casablanca, Maroc</AdrLine>
+                        </PstlAdr>
+                    </FinInstnId>
+                </CdtrAgt>
+                <Cdtr>
+                    <Nm>ALAMI Mohammed</Nm>
+                    <PstlAdr>
+                        <Ctry>MA</Ctry>
+                        <AdrLine>321 Rue Al Massira</AdrLine>
+                        <AdrLine>Rabat, Maroc</AdrLine>
+                    </PstlAdr>
+                    <Id>
+                        <PrvtId>
+                            <Othr>
+                                <Id>CIN-BE123456</Id>
+                            </Othr>
+                        </PrvtId>
+                    </Id>
+                </Cdtr>
+                <CdtrAcct>
+                    <Id>
+                        <IBAN>MA64003030000000000000098765</IBAN>
+                    </Id>
+                    <Ccy>MAD</Ccy>
+                </CdtrAcct>
+                <Purp>
+                    <Cd>SALA</Cd>
+                </Purp>
+                <RmtInf>
+                    <Ustrd>Salaire mois d'août 2025 - Employé : Mohammed ALAMI</Ustrd>
+                </RmtInf>
+            </CdtTrfTxInf>
+        </PmtInf>
+    </CstmrCdtTrfInitn>
+</Document>
+

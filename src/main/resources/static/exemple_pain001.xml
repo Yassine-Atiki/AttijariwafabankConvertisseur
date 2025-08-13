@@ -1,0 +1,87 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<Document xmlns="urn:iso:std:iso:20022:tech:xsd:pain.001.001.03">
+    <CstmrCdtTrfInitn>
+        <GrpHdr>
+            <MsgId>MSG20250812001</MsgId>
+            <CreDtTm>2025-08-12T14:30:00</CreDtTm>
+            <NbOfTxs>2</NbOfTxs>
+            <CtrlSum>15000.00</CtrlSum>
+            <InitgPty>
+                <Nm>Attijariwafa Bank</Nm>
+            </InitgPty>
+        </GrpHdr>
+        <PmtInf>
+            <PmtInfId>PMT20250812001</PmtInfId>
+            <PmtMtd>TRF</PmtMtd>
+            <ReqdExctnDt>2025-08-13</ReqdExctnDt>
+            <Dbtr>
+                <Nm>Entreprise ABC SARL</Nm>
+            </Dbtr>
+            <DbtrAcct>
+                <Id>
+                    <IBAN>MA64011519000001205000000161</IBAN>
+                </Id>
+                <Ccy>MAD</Ccy>
+            </DbtrAcct>
+            <DbtrAgt>
+                <FinInstnId>
+                    <BIC>ATIJMAMC</BIC>
+                    <Nm>Attijariwafa Bank</Nm>
+                </FinInstnId>
+            </DbtrAgt>
+            <CdtTrfTxInf>
+                <PmtId>
+                    <InstrId>INSTR001</InstrId>
+                    <EndToEndId>E2E001</EndToEndId>
+                </PmtId>
+                <Amt>
+                    <InstdAmt Ccy="MAD">10000.00</InstdAmt>
+                </Amt>
+                <CdtrAgt>
+                    <FinInstnId>
+                        <BIC>BMCEMAMC</BIC>
+                        <Nm>BMCE Bank</Nm>
+                    </FinInstnId>
+                </CdtrAgt>
+                <Cdtr>
+                    <Nm>Fournisseur XYZ</Nm>
+                </Cdtr>
+                <CdtrAcct>
+                    <Id>
+                        <IBAN>MA64007007000000000000012345</IBAN>
+                    </Id>
+                </CdtrAcct>
+                <RmtInf>
+                    <Ustrd>Paiement facture N° FAC-2025-001</Ustrd>
+                </RmtInf>
+            </CdtTrfTxInf>
+            <CdtTrfTxInf>
+                <PmtId>
+                    <InstrId>INSTR002</InstrId>
+                    <EndToEndId>E2E002</EndToEndId>
+                </PmtId>
+                <Amt>
+                    <InstdAmt Ccy="MAD">5000.00</InstdAmt>
+                </Amt>
+                <CdtrAgt>
+                    <FinInstnId>
+                        <BIC>CIHBMAMC</BIC>
+                        <Nm>CIH Bank</Nm>
+                    </FinInstnId>
+                </CdtrAgt>
+                <Cdtr>
+                    <Nm>Prestataire Services</Nm>
+                </Cdtr>
+                <CdtrAcct>
+                    <Id>
+                        <IBAN>MA64230030000000000000067890</IBAN>
+                    </Id>
+                </CdtrAcct>
+                <RmtInf>
+                    <Ustrd>Prestations de services mois août 2025</Ustrd>
+                </RmtInf>
+            </CdtTrfTxInf>
+        </PmtInf>
+    </CstmrCdtTrfInitn>
+</Document>
+

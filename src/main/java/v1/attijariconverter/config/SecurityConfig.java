@@ -20,8 +20,13 @@ public class SecurityConfig {
     public SecurityFilterChain filterChain(HttpSecurity http) throws Exception {
         http
             .authorizeHttpRequests((authz) -> authz
-                .requestMatchers("/css/**", "/images/**", "/js/**").permitAll()
+                .requestMatchers("/css/**", "/images/**", "/js/**", "/static/**").permitAll()
+                .requestMatchers("/api/**").permitAll() // Autoriser l'accès aux API REST
+                .requestMatchers("/login").permitAll()
                 .anyRequest().authenticated()
+            )
+            .csrf((csrf) -> csrf
+                .ignoringRequestMatchers("/api/**", "/convert", "/validate") // Désactiver CSRF pour les API REST et conversion
             )
             .formLogin((form) -> form
                 .loginPage("/login")

@@ -1,10 +1,19 @@
 <!DOCTYPE html>
-<html xmlns:th="http://www.thymeleaf.org" lang="fr">
+<html lang="fr" xmlns:th="http://www.thymeleaf.org">
 <head>
-    <meta charset="utf-8" />
-    <meta name="viewport" content="width=device-width, initial-scale=1" />
-    <title>Convertisseur pain.001 → MT101 — Attijariwafa bank</title>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Dashboard - Convertisseur MX/MT - Attijariwafa bank</title>
     <link rel="stylesheet" href="/css/dashboard.css" />
+    <style>
+        /* CSS inline pour s'assurer que les vues fonctionnent */
+        .view {
+            display: none;
+        }
+        .view.is-visible {
+            display: block;
+        }
+    </style>
 </head>
 <body>
 <div class="app-shell">
@@ -16,29 +25,25 @@
             </div>
         </div>
         <nav class="sidebar-nav">
-            <a class="nav-item active" href="#" data-target="view-home">
-            <span class="icon" aria-hidden="true">
-              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M3 10.5L12 3l9 7.5"/><path d="M6 10v10h12V10"/></svg>
-            </span>
-                <span class="label">Home</span>
+            <a id="nav-home" class="nav-item active" href="javascript:void(0)" onclick="showSection('view-home')" title="Accueil">
+                <span class="icon" aria-hidden="true">🏠</span>
+                <span class="label">Accueil</span>
             </a>
-            <a class="nav-item" href="#" data-target="view-convert">
-            <span class="icon" aria-hidden="true">
-              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M4 6h12"/><path d="M12 3l4 3-4 3"/><path d="M20 18H8"/><path d="M12 15l-4 3 4 3"/></svg>
-            </span>
+            <a id="nav-convert" class="nav-item" href="javascript:void(0)" onclick="showSection('view-convert')" title="Convertir">
+                <span class="icon" aria-hidden="true">🔄</span>
                 <span class="label">pain.001 → MT101</span>
             </a>
-            <a class="nav-item" href="#" data-target="view-transform">
-            <span class="icon" aria-hidden="true">
-              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="4"/><path d="M12 2v3M12 19v3M4 12h3M17 12h3M5 5l2 2M17 17l2 2M19 5l-2 2M7 17l-2 2"/></svg>
-            </span>
-                <span class="label">Transformation</span>
+            <a id="nav-transform" class="nav-item" href="javascript:void(0)" onclick="showSection('view-transform')" title="Historique">
+                <span class="icon" aria-hidden="true">📋</span>
+                <span class="label">Historique</span>
             </a>
-            <a class="nav-item" href="#" data-target="view-reports">
-            <span class="icon" aria-hidden="true">
-              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 4l8 14H4l8-14z"/><path d="M12 10v4"/><circle cx="12" cy="17" r="1"/></svg>
-            </span>
+            <a id="nav-reports" class="nav-item" href="javascript:void(0)" onclick="showSection('view-reports')" title="Rapports">
+                <span class="icon" aria-hidden="true">📊</span>
                 <span class="label">Rapports Erreurs</span>
+            </a>
+            <a id="nav-logout" class="nav-item logout-link" href="javascript:void(0)" onclick="logout()" title="Déconnexion">
+                <span class="icon" aria-hidden="true">🚪</span>
+                <span class="label">Déconnexion</span>
             </a>
         </nav>
     </aside>
@@ -50,10 +55,10 @@
                     <div class="panel">
                         <div class="welcome-row">
                             <div>
-                                <strong>Bienvenue</strong>
+                                <strong>Bienvenue dans le Convertisseur MX → MT</strong>
                                 <div class="muted">yassineatiki@attijariwafa.com</div>
                             </div>
-                            <button class="btn btn-primary" type="button" data-target="view-convert">Nouvelle transformation</button>
+                            <button class="btn btn-primary" type="button" onclick="showSection('view-convert')">Nouvelle transformation</button>
                         </div>
                     </div>
 
@@ -63,225 +68,281 @@
                                 <div class="ring total" style="--v:.94"><div class="center">Σ</div></div>
                                 <div>
                                     <div class="metric-title">Total Messages</div>
-                                    <div class="metric-value">47</div>
+                                    <div class="metric-value" th:text="${totalConversions}">0</div>
                                 </div>
                             </div>
                             <div class="metric-card">
                                 <div class="ring success" style="--v:.96"><div class="center">✓</div></div>
                                 <div>
-                                    <div class="metric-title">Success Messages</div>
-                                    <div class="metric-value">45</div>
+                                    <div class="metric-title">Messages Valides</div>
+                                    <div class="metric-value" th:text="${validConversions}">0</div>
                                 </div>
                             </div>
                             <div class="metric-card">
                                 <div class="ring error" style="--v:.04"><div class="center">!</div></div>
                                 <div>
-                                    <div class="metric-title">Error Messages</div>
-                                    <div class="metric-value">2</div>
+                                    <div class="metric-title">Messages en Erreur</div>
+                                    <div class="metric-value" th:text="${invalidConversions}">0</div>
                                 </div>
                             </div>
                         </div>
                     </div>
-
-                    <div class="chart">
-                        <div class="panel">
-                            <svg viewBox="0 0 600 240" role="img" aria-label="Évolution des messages">
-                                <g class="axis">
-                                    <line x1="40" y1="200" x2="580" y2="200" stroke="#e5e7eb" />
-                                    <line x1="40" y1="200" x2="40" y2="24" stroke="#e5e7eb" />
-                                    <text x="60" y="220">2024-08-13</text>
-                                    <text x="260" y="220">2024-08-15</text>
-                                    <text x="460" y="220">2024-08-16</text>
-                                </g>
-                                <path class="area" d="M40,200 L80,160 L240,110 L420,60 L580,48 L580,200 Z" />
-                                <path class="line" d="M40,200 L80,160 L240,110 L420,60 L580,48" />
-                                <circle class="point" cx="80" cy="160" r="4" />
-                                <circle class="point" cx="240" cy="110" r="4" />
-                                <circle class="point" cx="420" cy="60" r="4" />
-                                <circle class="point" cx="580" cy="48" r="4" />
-                            </svg>
-                        </div>
-                    </div>
-
                 </div>
-
-                <aside class="calendar">
-                    <div class="panel">
-                        <div class="cal-head">
-                            <button class="btn btn-ghost" aria-label="Mois précédent">◀</button>
-                            <div class="month">August 2024</div>
-                            <button class="btn btn-ghost" aria-label="Mois suivant">▶</button>
-                        </div>
-                        <div class="cal-grid">
-                            <div class="dow">Mo</div><div class="dow">Tu</div><div class="dow">We</div><div class="dow">Th</div><div class="dow">Fr</div><div class="dow">Sa</div><div class="dow">Su</div>
-                            <div class="cal-day is-muted">29</div><div class="cal-day is-muted">30</div><div class="cal-day is-muted">31</div>
-                            <div class="cal-day">1</div><div class="cal-day">2</div><div class="cal-day">3</div><div class="cal-day">4</div>
-                            <div class="cal-day">5</div><div class="cal-day">6</div><div class="cal-day">7</div><div class="cal-day">8</div><div class="cal-day">9</div><div class="cal-day">10</div><div class="cal-day">11</div>
-                            <div class="cal-day">12</div><div class="cal-day">13</div><div class="cal-day">14</div><div class="cal-day">15</div><div class="cal-day is-today">16</div><div class="cal-day">17</div><div class="cal-day">18</div>
-                            <div class="cal-day">19</div><div class="cal-day">20</div><div class="cal-day">21</div><div class="cal-day">22</div><div class="cal-day">23</div><div class="cal-day">24</div><div class="cal-day">25</div>
-                            <div class="cal-day">26</div><div class="cal-day">27</div><div class="cal-day">28</div><div class="cal-day">29</div><div class="cal-day">30</div><div class="cal-day">31</div><div class="cal-day is-muted">1</div>
-                        </div>
-                    </div>
-                </aside>
             </div>
         </section>
 
         <section id="view-convert" class="view" aria-label="Conversion pain.001 vers MT101">
             <div class="container">
-                <section class="panel options" aria-labelledby="options-title">
-                    <h2 id="options-title">Paramètres — pain.001 → MT101</h2>
-                    <div class="options-grid">
-                        <label class="field">
-                            <span>Type MX source</span>
-                            <select disabled>
-                                <option selected>pain.001 (ISO 20022)</option>
-                            </select>
-                        </label>
-                        <label class="field">
-                            <span>Type MT cible</span>
-                            <select disabled>
-                                <option selected>MT101 (SWIFT FIN)</option>
-                            </select>
-                        </label>
+                <h1>🔄 Convertisseur MX PAIN 001 → MT 101</h1>
 
-                        <div class="toggles">
-                            <label class="toggle"><input type="checkbox" checked /> Valider le schéma pain.001</label>
-                            <label class="toggle"><input type="checkbox" /> Normaliser accents</label>
-                            <label class="toggle"><input type="checkbox" /> Masquer données sensibles</label>
-                        </div>
-                        <div class="actions">
-                            <button class="btn btn-primary" type="button">Convertir</button>
-                            <button class="btn btn-secondary" type="button">Vider</button>
-                        </div>
-                    </div>
-                </section>
-
-                <section class="grid io" aria-label="Saisie et sortie">
-                    <div class="panel input" aria-labelledby="mx-title" style="margin-top: 16px;">
-                        <div class="panel-header">
-                            <h2 id="mx-title">Entrée pain.001 (ISO 20022 XML)</h2>
-                            <div class="panel-actions">
-                                <label class="btn btn-outline file-label">
-                                    Importer XML
-                                    <input type="file" accept=".xml,.zip" aria-label="Importer fichier pain.001" />
-                                </label>
-                            </div>
-                        </div>
-                        <div class="dropzone" role="group" aria-label="Zone de dépôt">
-                            <p>Glissez-déposez un fichier pain.001 ici, ou collez votre contenu XML ci-dessous.</p>
-                        </div>
-                        <label class="sr-only" for="mx-input">pain.001 XML</label>
-                        <textarea id="mx-input" placeholder="&lt;Document xmlns=&quot;urn:iso:std:iso:20022:tech:xsd:pain.001.001.03&quot;&gt;
-  &lt;CstmrCdtTrfInitn&gt;
-    &lt;GrpHdr&gt;...&lt;/GrpHdr&gt;
-    &lt;PmtInf&gt;...&lt;/PmtInf&gt;
-  &lt;/CstmrCdtTrfInitn&gt;
-&lt;/Document&gt;"></textarea>
-                    </div>
-
-                    <div class="panel output" aria-labelledby="mt-title">
-                        <div class="panel-header">
-                            <h2 id="mt-title">Sortie MT101 (SWIFT FIN)</h2>
-                            <div class="panel-actions">
-                                <button class="btn btn-outline" type="button">Copier</button>
-                                <button class="btn btn-outline" type="button">Télécharger .mt</button>
-                            </div>
-                        </div>
-                        <label class="sr-only" for="mt-output">MT101</label>
-                        <textarea id="mt-output" placeholder=":20:REFERENCE
-:28D:1/1
-:21R:RELATED-REF
-:30:YYMMDD
-:50H:/DEBTOR-ACCOUNT
-DEBTOR NAME & ADDRESS
-:59:/CREDITOR-ACCOUNT
-CREDITOR NAME & ADDRESS
-:70:REMI SEPA/INFO
-:71A:OUR
--" readonly></textarea>
-                    </div>
-                </section>
-
-                <section class="panel validation" aria-labelledby="validation-title" style="margin-top: 15px;">
-                    <h2 id="validation-title">Résultats de validation</h2>
-                    <ul class="status-list" aria-live="polite">
-                        <li class="status ok">Schéma pain.001 valide</li>
-                        <li class="status info">Champs mappés pour MT101 (profil AWB par défaut)</li>
-                    </ul>
-                </section>
-
-                <section class="panel history" aria-labelledby="history-title">
-                    <h2 id="history-title">Historique récent</h2>
-                    <div class="table-wrap">
-                        <table>
-                            <thead>
-                            <tr>
-                                <th>Date</th>
-                                <th>Fichier</th>
-                                <th>Type cible</th>
-                                <th>Statut</th>
-                            </tr>
-                            </thead>
-                            <tbody>
-                            <tr>
-                                <td>12/08/2025 10:24</td>
-                                <td>pain.001.xml</td>
-                                <td>MT101</td>
-                                <td><span class="chip ok">Converti</span></td>
-                            </tr>
-                            </tbody>
-                        </table>
-                    </div>
-                </section>
-            </div>
-        </section>
-
-        <section id="view-transform" class="view" aria-label="Transformation">
-            <div class="container">
                 <div class="panel">
-                    <p class="muted">Espace Transformation — à compléter.</p>
+                    <h2>Paramètres de Conversion</h2>
+                    <p>Type source : MX PAIN 001 v3 (ISO 20022)</p>
+                    <p>Type cible : MT 101 (SWIFT FIN)</p>
+                </div>
+
+                <div class="panel">
+                    <h2>Zone de Conversion</h2>
+                    <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 20px;">
+                        <div>
+                            <h3>Entrée MX PAIN 001</h3>
+                            <textarea id="mx-input" rows="15" style="width: 100%; font-family: monospace;"
+                                      placeholder="Collez votre message MX PAIN 001 ici..."></textarea>
+                            <div style="margin-top: 10px;">
+                                <input type="file" id="file-input" accept=".xml" onchange="loadFile(this)">
+                                <button onclick="convertMX()" style="margin-left: 10px;">🔄 Convertir</button>
+                                <button onclick="clearAll()" style="margin-left: 10px;">🗑️ Vider</button>
+                            </div>
+                        </div>
+                        <div>
+                            <h3>Sortie MT 101</h3>
+                            <textarea id="mt-output" rows="15" style="width: 100%; font-family: monospace;"
+                                      placeholder="Le message MT 101 apparaîtra ici..." readonly></textarea>
+                            <div style="margin-top: 10px;">
+                                <button onclick="copyMT()">📋 Copier</button>
+                                <button onclick="downloadMT()" style="margin-left: 10px;">💾 Télécharger</button>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="panel">
+                    <h3>Statut de Validation</h3>
+                    <div id="validation-status">
+                        <p>ℹ️ Prêt pour la conversion</p>
+                    </div>
                 </div>
             </div>
         </section>
 
-        <section id="view-reports" class="view" aria-label="Rapports d'erreurs">
+        <section id="view-transform" class="view" aria-label="Historique des Conversions">
             <div class="container">
+                <h1>📋 Historique des Conversions</h1>
                 <div class="panel">
-                    <p class="muted">Rapports d'erreurs — à compléter.</p>
+                    <h2>Conversions MX vers MT101</h2>
+                    <table style="width: 100%; border-collapse: collapse;">
+                        <thead>
+                            <tr style="background-color: #f5f5f5;">
+                                <th style="padding: 10px; border: 1px solid #ddd;">Date</th>
+                                <th style="padding: 10px; border: 1px solid #ddd;">Format</th>
+                                <th style="padding: 10px; border: 1px solid #ddd;">Statut</th>
+                                <th style="padding: 10px; border: 1px solid #ddd;">Actions</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            <tr th:each="history : ${conversionHistory}">
+                                <td style="padding: 10px; border: 1px solid #ddd;" th:text="${#temporals.format(history.conversionDate, 'dd/MM/yyyy HH:mm')}">-</td>
+                                <td style="padding: 10px; border: 1px solid #ddd;" th:text="${history.inputFormat + ' → ' + history.outputFormat}">-</td>
+                                <td style="padding: 10px; border: 1px solid #ddd;" th:text="${history.status}">-</td>
+                                <td style="padding: 10px; border: 1px solid #ddd;">
+                                    <button onclick="viewDetails()">Détails</button>
+                                </td>
+                            </tr>
+                            <tr th:if="${#lists.isEmpty(conversionHistory)}">
+                                <td colspan="4" style="padding: 20px; text-align: center; font-style: italic;">
+                                    Aucun historique disponible
+                                </td>
+                            </tr>
+                        </tbody>
+                    </table>
                 </div>
             </div>
         </section>
 
-        <footer class="app-footer" role="contentinfo">
-            <p>&copy; 2025 Attijariwafa bank — Tous droits réservés.</p>
-        </footer>
+        <section id="view-reports" class="view" aria-label="Rapports et Logs">
+            <div class="container">
+                <h1>📊 Rapports & Logs</h1>
+                <div class="panel">
+                    <h2>Logs d'Application</h2>
+                    <div style="background-color: #f8f9fa; padding: 15px; border-radius: 5px; font-family: monospace; max-height: 400px; overflow-y: auto;">
+                        <div>2025-08-13 10:30:00 INFO  - Application démarrée</div>
+                        <div>2025-08-13 10:30:15 INFO  - Validation XSD initialisée</div>
+                        <div>2025-08-13 10:30:30 INFO  - Service de conversion MT101 activé</div>
+                        <div>2025-08-13 10:30:45 INFO  - MongoDB connecté : mx_mt_converter_db</div>
+                    </div>
+                </div>
+            </div>
+        </section>
     </div>
 </div>
 
 <script>
-    (function () {
-        const navItems = document.querySelectorAll('.sidebar-nav .nav-item');
-        const views = document.querySelectorAll('.view');
-        const triggers = document.querySelectorAll('[data-target]');
+// Navigation entre les sections
+function showSection(sectionId) {
+    console.log('Navigation vers: ' + sectionId);
 
-        function showView(id) {
-            views.forEach((v) => v.classList.remove('is-visible'));
-            const target = document.getElementById(id);
-            if (target) target.classList.add('is-visible');
-            // sync active state in sidebar
-            navItems.forEach((i) => i.classList.toggle('active', i.getAttribute('data-target') === id));
+    // Masquer toutes les vues
+    const views = document.querySelectorAll('.view');
+    views.forEach(view => {
+        view.classList.remove('is-visible');
+    });
+
+    // Désactiver tous les éléments de navigation
+    const navItems = document.querySelectorAll('.nav-item');
+    navItems.forEach(item => {
+        item.classList.remove('active');
+    });
+
+    // Afficher la section demandée
+    const targetView = document.getElementById(sectionId);
+    if (targetView) {
+        targetView.classList.add('is-visible');
+    }
+
+    // Activer l'élément de navigation correspondant
+    const navId = sectionId.replace('view-', 'nav-');
+    const activeNav = document.getElementById(navId);
+    if (activeNav) {
+        activeNav.classList.add('active');
+    }
+}
+
+// Fonction de déconnexion
+function logout() {
+    if (confirm('Êtes-vous sûr de vouloir vous déconnecter ?')) {
+        window.location.href = '/logout';
+    }
+}
+
+// Charger un fichier
+function loadFile(input) {
+    const file = input.files[0];
+    if (file) {
+        const reader = new FileReader();
+        reader.onload = function(e) {
+            document.getElementById('mx-input').value = e.target.result;
+            updateValidationStatus('📄 Fichier chargé: ' + file.name);
+        };
+        reader.readAsText(file);
+    }
+}
+
+// Conversion MX vers MT101
+async function convertMX() {
+    const mxContent = document.getElementById('mx-input').value;
+    const outputArea = document.getElementById('mt-output');
+
+    if (!mxContent.trim()) {
+        updateValidationStatus('❌ Veuillez entrer un message MX PAIN 001');
+        return;
+    }
+
+    updateValidationStatus('🔄 Conversion en cours...');
+
+    try {
+        const response = await fetch('/api/conversion/convert/text', {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/xml; charset=utf-8'
+            },
+            body: mxContent
+        });
+
+        const result = await response.json();
+
+        if (result.success) {
+            outputArea.value = result.mtMessage;
+            updateValidationStatus('✅ Conversion MT101 réussie', result.validationErrors);
+        } else {
+            outputArea.value = '';
+            updateValidationStatus('❌ Erreur: ' + result.errorMessage, result.validationErrors);
         }
 
-        // Wire all triggers (sidebar items + buttons)
-        triggers.forEach((el) => {
-            el.addEventListener('click', (e) => {
-                const id = el.getAttribute('data-target');
-                if (!id) return;
-                e.preventDefault();
-                showView(id);
-            });
+    } catch (error) {
+        console.error('Erreur de conversion:', error);
+        updateValidationStatus('❌ Erreur de communication: ' + error.message);
+        outputArea.value = '';
+    }
+}
+
+// Mettre à jour le statut de validation
+function updateValidationStatus(message, validationErrors = null) {
+    const statusDiv = document.getElementById('validation-status');
+    let html = '<p>' + message + '</p>';
+
+    if (validationErrors && validationErrors.length > 0) {
+        html += '<div style="margin-top: 10px;"><strong>Détails de validation:</strong><ul>';
+        validationErrors.forEach(error => {
+            html += '<li style="color: #d32f2f;">' + error + '</li>';
         });
-    })();
+        html += '</ul></div>';
+    }
+
+    statusDiv.innerHTML = html;
+}
+
+// Vider les zones de texte
+function clearAll() {
+    document.getElementById('mx-input').value = '';
+    document.getElementById('mt-output').value = '';
+    document.getElementById('file-input').value = '';
+    updateValidationStatus('ℹ️ Prêt pour la conversion');
+}
+
+// Copier le message MT101
+function copyMT() {
+    const mtOutput = document.getElementById('mt-output');
+    if (mtOutput.value.trim()) {
+        mtOutput.select();
+        document.execCommand('copy');
+        updateValidationStatus('📋 Message MT101 copié dans le presse-papier');
+    } else {
+        updateValidationStatus('❌ Aucun message MT101 à copier');
+    }
+}
+
+// Télécharger le message MT101
+function downloadMT() {
+    const mtOutput = document.getElementById('mt-output');
+    if (mtOutput.value.trim()) {
+        const blob = new Blob([mtOutput.value], { type: 'text/plain' });
+        const url = window.URL.createObjectURL(blob);
+        const a = document.createElement('a');
+        a.href = url;
+        a.download = 'message_MT101_' + new Date().toISOString().slice(0,19).replace(/:/g, '-') + '.txt';
+        document.body.appendChild(a);
+        a.click();
+        document.body.removeChild(a);
+        window.URL.revokeObjectURL(url);
+        updateValidationStatus('💾 Message MT101 téléchargé');
+    } else {
+        updateValidationStatus('❌ Aucun message MT101 à télécharger');
+    }
+}
+
+// Afficher les détails d'un historique
+function viewDetails() {
+    alert('Fonctionnalité en développement');
+}
+
+// Initialisation au chargement de la page
+document.addEventListener('DOMContentLoaded', function() {
+    console.log('🚀 Dashboard initialisé');
+    updateValidationStatus('ℹ️ Prêt pour la conversion');
+
+    // S'assurer que la section d'accueil est affichée par défaut
+    showSection('view-home');
+});
 </script>
 </body>
 </html>
