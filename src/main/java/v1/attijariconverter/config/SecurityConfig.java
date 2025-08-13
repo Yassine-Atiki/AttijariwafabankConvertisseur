@@ -43,13 +43,20 @@ public class SecurityConfig {
 
     @Bean
     public UserDetailsService userDetailsService() {
-        UserDetails user = User.builder()
+        // Créer plusieurs utilisateurs avec des mots de passe personnalisés
+        UserDetails admin = User.builder()
                 .username("admin")
                 .password(passwordEncoder().encode("attijari2025"))
                 .roles("ADMIN")
                 .build();
 
-        return new InMemoryUserDetailsManager(user);
+        UserDetails user = User.builder()
+                .username("yassineatiki")
+                .password(passwordEncoder().encode("attijari2025"))
+                .roles("USER")
+                .build();
+
+        return new InMemoryUserDetailsManager(admin, user);
     }
 
     @Bean

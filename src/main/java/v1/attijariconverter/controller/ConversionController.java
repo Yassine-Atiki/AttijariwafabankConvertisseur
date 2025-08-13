@@ -1,17 +1,22 @@
 package v1.attijariconverter.controller;
 
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.http.HttpHeaders;
 import org.springframework.http.HttpStatus;
+import org.springframework.http.MediaType;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
 import org.springframework.web.multipart.MultipartFile;
 import v1.attijariconverter.service.ConversionService;
 import v1.attijariconverter.service.XSDValidationService;
+import v1.attijariconverter.repository.ConversionHistoryRepository;
+import v1.attijariconverter.model.ConversionHistory;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 import java.nio.charset.StandardCharsets;
 import java.util.List;
+import java.util.Optional;
 
 @RestController
 @RequestMapping("/api/conversion")
@@ -25,6 +30,9 @@ public class ConversionController {
 
     @Autowired
     private XSDValidationService xsdValidationService;
+
+    @Autowired
+    private ConversionHistoryRepository conversionHistoryRepository;
 
     public static class ConversionResponse {
         private boolean success;
@@ -124,6 +132,8 @@ public class ConversionController {
             // Valider d'abord le fichier pain.001
             XSDValidationService.ValidationResult validationResult = xsdValidationService.validatePain001(content);
             if (!validationResult.isValid()) {
+                // Journaliser l'échec dans l'historique MongoDB
+                conversionService.saveValidationFailure(content, validationResult.getErrors(), "Fichier pain.001 invalide");
                 return ResponseEntity.badRequest()
                     .body(new ConversionResponse(false, null, "Fichier pain.001 invalide", validationResult.getErrors()));
             }
@@ -166,6 +176,8 @@ public class ConversionController {
             // Valider d'abord le contenu pain.001
             XSDValidationService.ValidationResult validationResult = xsdValidationService.validatePain001(xmlContent);
             if (!validationResult.isValid()) {
+                // Journaliser l'échec dans l'historique MongoDB
+                conversionService.saveValidationFailure(xmlContent, validationResult.getErrors(), "Contenu pain.001 invalide");
                 return ResponseEntity.badRequest()
                     .body(new ConversionResponse(false, null, "Contenu pain.001 invalide", validationResult.getErrors()));
             }
@@ -199,4 +211,38 @@ public class ConversionController {
     public ResponseEntity<String> testEndpoint() {
         return ResponseEntity.ok("API de conversion opérationnelle");
     }
+
+    @GetMapping("/history/{id}/download")
+    public ResponseEntity<byte[]> downloadMt101(@PathVariable("id") String id) {
+        try {
+            Optional<ConversionHistory> opt = conversionHistoryRepository.findById(id);
+            if (opt.isEmpty()) {
+                return ResponseEntity.status(HttpStatus.NOT_FOUND).body(null);
+            }
+            ConversionHistory history = opt.get();
+            String content = history.getMtContent();
+            if (content == null || content.isBlank()) {
+                // Rien à télécharger pour cet historique
+                return ResponseEntity.status(HttpStatus.NO_CONTENT).body(null);
+            }
+
+            byte[] bytes = content.getBytes(StandardCharsets.UTF_8);
+
+            String baseName = "MT101_" + (history.getConversionDate() != null
+                    ? history.getConversionDate().toString().replace(":", "-")
+                    : id);
+            String filename = baseName + ".txt";
+
+            HttpHeaders headers = new HttpHeaders();
+            headers.add(HttpHeaders.CONTENT_DISPOSITION, "attachment; filename=\"" + filename + "\"");
+            headers.add(HttpHeaders.CONTENT_TYPE, "text/plain; charset=UTF-8");
+            headers.setContentLength(bytes.length);
+
+            return new ResponseEntity<>(bytes, headers, HttpStatus.OK);
+        } catch (Exception e) {
+            logger.error("Erreur lors du téléchargement MT101 pour id {}", id, e);
+            return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).body(null);
+        }
+    }
 }
+

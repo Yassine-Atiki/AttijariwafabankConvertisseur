@@ -56,6 +56,8 @@ public class ConversionService {
             // Parser le message MX
             MXMessage mxMessage = mxParsingService.parseMXMessage(mxContent);
             if (mxMessage == null) {
+                // Échec parsing => sauvegarde comme erreur
+                saveConversionHistory(null, mxContent, null, "ERROR", "Impossible de parser le message MX", validationErrors, null);
                 return new ConversionResult(false, null, "Impossible de parser le message MX", validationErrors);
             }
 
@@ -64,18 +66,21 @@ public class ConversionService {
 
             // Valider la structure MT101
             if (!validateMT101Structure(mt101Message, validationErrors)) {
+                // Sauvegarder l'échec de validation MT
+                saveConversionHistory(mxMessage, mxContent, mt101Message, "ERROR", "Erreurs de validation MT101", validationErrors, null);
                 return new ConversionResult(false, mt101Message, "Erreurs de validation MT101", validationErrors);
             }
 
-            // Sauvegarder dans l'historique
-            saveConversionHistory(mxMessage, mt101Message, "SUCCESS");
+            // Sauvegarder dans l'historique (succès)
+            saveConversionHistory(mxMessage, mxContent, mt101Message, "SUCCESS", null, validationErrors, null);
 
             logger.info("Conversion MT101 réussie");
             return new ConversionResult(true, mt101Message, null, validationErrors);
 
         } catch (Exception e) {
             logger.error("Erreur lors de la conversion MX vers MT101", e);
-            saveConversionHistory(null, null, "ERROR: " + e.getMessage());
+            // Sauvegarder l'erreur inattendue
+            saveConversionHistory(null, mxContent, null, "ERROR", e.getMessage(), validationErrors, null);
             return new ConversionResult(false, null, "Erreur lors de la conversion: " + e.getMessage(), validationErrors);
         }
     }
@@ -128,35 +133,34 @@ public class ConversionService {
         StringBuilder bloc4 = new StringBuilder();
         bloc4.append("{4:\n");
 
-        // Champs obligatoires de l'en-tête
         // :20: Transaction Reference Number (obligatoire)
         String transactionRef = mxMessage.getMessageId();
-        if (transactionRef == null || transactionRef.trim().isEmpty()) {
-            transactionRef = "REF" + System.currentTimeMillis();
-            validationErrors.add("Référence de transaction manquante, générée automatiquement: " + transactionRef);
+        if (transactionRef != null && !transactionRef.trim().isEmpty()) {
+            bloc4.append(":20:").append(transactionRef).append("\n");
+        } else {
+            validationErrors.add("Champ :20: (Transaction Reference) manquant");
         }
-        bloc4.append(":20:").append(transactionRef).append("\n");
 
-        // :28D: Message Index/Total (obligatoire)
+        // :28D: Message Index/Total (obligatoire) — valeur fixe
         bloc4.append(":28D:1/1\n");
 
         // :30: Requested Execution Date (obligatoire)
         String executionDate = mxMessage.getRequestedExecutionDate();
-        if (executionDate == null || executionDate.trim().isEmpty()) {
-            executionDate = LocalDateTime.now().format(DateTimeFormatter.ofPattern("yyyyMMdd"));
-            validationErrors.add("Date d'exécution manquante, date actuelle utilisée: " + executionDate);
-        } else {
-            // Convertir la date ISO au format YYYYMMDD
+        if (executionDate != null && !executionDate.trim().isEmpty()) {
+            // Accepter AAAAMMJJ ou AAAA-MM-JJ
             try {
-                if (executionDate.contains("-")) {
-                    executionDate = executionDate.replaceAll("-", "").substring(0, 8);
+                String normalized = executionDate.contains("-") ? executionDate.replaceAll("-", "").substring(0, 8) : executionDate;
+                if (normalized.matches("\\d{8}")) {
+                    bloc4.append(":30:").append(normalized).append("\n");
+                } else {
+                    validationErrors.add("Format de :30: invalide (attendu AAAAMMJJ)");
                 }
             } catch (Exception e) {
-                executionDate = LocalDateTime.now().format(DateTimeFormatter.ofPattern("yyyyMMdd"));
-                validationErrors.add("Format de date invalide, date actuelle utilisée: " + executionDate);
+                validationErrors.add("Format de :30: invalide (exception de parsing)");
             }
+        } else {
+            validationErrors.add("Champ :30: (Requested Execution Date) manquant");
         }
-        bloc4.append(":30:").append(executionDate).append("\n");
 
         // Séquences B - Détails des transactions
         List<MXMessage.PaymentInstruction> payments = mxMessage.getPaymentInstructions();
@@ -175,68 +179,66 @@ public class ConversionService {
     }
 
     private void generateSequenceB(StringBuilder bloc4, MXMessage.PaymentInstruction payment, List<String> validationErrors) {
-        // :21: Transaction Reference Number par transaction (obligatoire)
+        // :21: EndToEndId / InstructionId (obligatoire)
         String txnRef = payment.getInstructionId();
-        if (txnRef == null || txnRef.trim().isEmpty()) {
-            txnRef = "TXN" + System.currentTimeMillis();
-            validationErrors.add("Référence de transaction manquante, générée: " + txnRef);
+        if (txnRef != null && !txnRef.trim().isEmpty()) {
+            bloc4.append(":21:").append(txnRef).append("\n");
+        } else {
+            validationErrors.add("Champ :21: (Transaction Reference par transaction) manquant");
         }
-        bloc4.append(":21:").append(txnRef).append("\n");
 
-        // :32B: Currency Code and Amount (obligatoire pour MT101)
+        // :32B: Devise et Montant (obligatoire)
         String currency = payment.getCurrency();
         String amount = payment.getAmount();
-        if (currency == null || currency.trim().isEmpty()) {
-            currency = "EUR";
-            validationErrors.add("Devise manquante, EUR utilisée par défaut");
+        boolean hasCurrency = currency != null && !currency.trim().isEmpty();
+        boolean hasAmount = amount != null && !amount.trim().isEmpty();
+        if (hasCurrency && hasAmount) {
+            // Format MT: utiliser virgule décimale
+            String amt = amount.replace('.', ',');
+            bloc4.append(":32B:").append(currency).append(amt).append("\n");
+        } else {
+            if (!hasCurrency) validationErrors.add("Champ devise manquant pour :32B:");
+            if (!hasAmount) validationErrors.add("Champ montant manquant pour :32B:");
         }
-        if (amount == null || amount.trim().isEmpty()) {
-            validationErrors.add("Montant manquant pour la transaction " + txnRef);
-            amount = "0,00";
-        }
-        // Formater le montant pour MT101 (pas de point décimal)
-        amount = amount.replace(".", ",");
-        bloc4.append(":32B:").append(currency).append(amount).append("\n");
 
-        // :50K: Ordering Customer (optionnel mais recommandé)
+        // :50K: Donneur d'ordre (optionnel)
         String debtorName = payment.getDebtorName();
         if (debtorName != null && !debtorName.trim().isEmpty()) {
             bloc4.append(":50K:").append(debtorName).append("\n");
         }
 
-        // :59: Beneficiary Customer (obligatoire)
+        // :59: Bénéficiaire (obligatoire)
         String creditorName = payment.getCreditorName();
-        if (creditorName == null || creditorName.trim().isEmpty()) {
-            validationErrors.add("Nom du bénéficiaire manquant pour la transaction " + txnRef);
-            creditorName = "CREDITOR NAME";
+        if (creditorName != null && !creditorName.trim().isEmpty()) {
+            bloc4.append(":59:").append(creditorName).append("\n");
+        } else {
+            validationErrors.add("Champ :59: (Beneficiary Customer) manquant");
         }
-        bloc4.append(":59:").append(creditorName).append("\n");
 
-        // :71A: Details of Charges (obligatoire)
+        // :71A: Frais (obligatoire) — pas de valeur par défaut
         String chargeBearer = payment.getChargeBearer();
-        if (chargeBearer == null || chargeBearer.trim().isEmpty()) {
-            chargeBearer = "SHA";
-            validationErrors.add("Type de frais manquant, SHA utilisé par défaut pour " + txnRef);
+        if (chargeBearer != null && !chargeBearer.trim().isEmpty()) {
+            String cb = chargeBearer.toUpperCase();
+            switch (cb) {
+                case "DEBT": cb = "OUR"; break;
+                case "CRED": cb = "BEN"; break;
+                case "SHAR":
+                case "SLEV": cb = "SHA"; break;
+                case "OUR":
+                case "BEN":
+                case "SHA": break; // déjà au bon format
+                default:
+                    validationErrors.add("Code de frais inconnu pour :71A: ('" + chargeBearer + "')");
+                    cb = null; // ne pas écrire de valeur par défaut
+            }
+            if (cb != null) {
+                bloc4.append(":71A:").append(cb).append("\n");
+            }
+        } else {
+            validationErrors.add("Champ :71A: (Details of Charges) manquant");
         }
-        // Convertir les codes ISO vers MT
-        switch (chargeBearer.toUpperCase()) {
-            case "DEBT":
-                chargeBearer = "OUR";
-                break;
-            case "CRED":
-                chargeBearer = "BEN";
-                break;
-            case "SHAR":
-            case "SLEV":
-                chargeBearer = "SHA";
-                break;
-            default:
-                chargeBearer = "SHA";
-                break;
-        }
-        bloc4.append(":71A:").append(chargeBearer).append("\n");
 
-        // :70: Remittance Information (optionnel)
+        // :70: Infos (optionnel)
         String remittanceInfo = payment.getRemittanceInfo();
         if (remittanceInfo != null && !remittanceInfo.trim().isEmpty()) {
             bloc4.append(":70:").append(remittanceInfo).append("\n");
@@ -252,81 +254,70 @@ public class ConversionService {
     private boolean validateMT101Structure(String mt101Message, List<String> validationErrors) {
         boolean isValid = true;
 
-        // Vérifier la présence des blocs obligatoires
-        if (!mt101Message.contains("{1:")) {
-            validationErrors.add("Bloc 1 (Basic Header) manquant");
-            isValid = false;
-        }
+        if (!mt101Message.contains("{1:")) { validationErrors.add("Bloc 1 (Basic Header) manquant"); isValid = false; }
+        if (!mt101Message.contains("{2:")) { validationErrors.add("Bloc 2 (Application Header) manquant"); isValid = false; }
+        if (!mt101Message.contains("{4:")) { validationErrors.add("Bloc 4 (Text Block) manquant"); isValid = false; }
+        if (!mt101Message.contains("{5:")) { validationErrors.add("Bloc 5 (Trailer) manquant"); isValid = false; }
 
-        if (!mt101Message.contains("{2:")) {
-            validationErrors.add("Bloc 2 (Application Header) manquant");
-            isValid = false;
-        }
-
-        if (!mt101Message.contains("{4:")) {
-            validationErrors.add("Bloc 4 (Text Block) manquant");
-            isValid = false;
-        }
-
-        if (!mt101Message.contains("{5:")) {
-            validationErrors.add("Bloc 5 (Trailer) manquant");
-            isValid = false;
-        }
-
-        // Vérifier les champs obligatoires
-        if (!mt101Message.contains(":20:")) {
-            validationErrors.add("Champ :20: (Transaction Reference) manquant");
-            isValid = false;
-        }
-
-        if (!mt101Message.contains(":28D:")) {
-            validationErrors.add("Champ :28D: (Message Index/Total) manquant");
-            isValid = false;
-        }
-
-        if (!mt101Message.contains(":30:")) {
-            validationErrors.add("Champ :30: (Requested Execution Date) manquant");
-            isValid = false;
-        }
-
-        if (!mt101Message.contains(":21:")) {
-            validationErrors.add("Champ :21: (Transaction Reference par transaction) manquant");
-            isValid = false;
-        }
-
-        if (!mt101Message.contains(":59:")) {
-            validationErrors.add("Champ :59: (Beneficiary Customer) manquant");
-            isValid = false;
-        }
-
-        if (!mt101Message.contains(":71A:")) {
-            validationErrors.add("Champ :71A: (Details of Charges) manquant");
-            isValid = false;
-        }
+        if (!mt101Message.contains(":20:")) { validationErrors.add("Champ :20: (Transaction Reference) manquant"); isValid = false; }
+        if (!mt101Message.contains(":28D:")) { validationErrors.add("Champ :28D: (Message Index/Total) manquant"); isValid = false; }
+        if (!mt101Message.contains(":30:")) { validationErrors.add("Champ :30: (Requested Execution Date) manquant"); isValid = false; }
+        if (!mt101Message.contains(":21:")) { validationErrors.add("Champ :21: (Transaction Reference par transaction) manquant"); isValid = false; }
+        if (!mt101Message.contains(":32B:")) { validationErrors.add("Champ :32B: (Currency and Amount) manquant"); isValid = false; }
+        if (!mt101Message.contains(":59:")) { validationErrors.add("Champ :59: (Beneficiary Customer) manquant"); isValid = false; }
+        if (!mt101Message.contains(":71A:")) { validationErrors.add("Champ :71A: (Details of Charges) manquant"); isValid = false; }
 
         return isValid;
     }
 
-    private void saveConversionHistory(MXMessage mxMessage, String mtMessage, String status) {
+    // Sauvegarde centralisée de l'historique
+    private void saveConversionHistory(MXMessage mxMessage,
+                                       String mxRawContent,
+                                       String mtMessage,
+                                       String status,
+                                       String errorMessage,
+                                       List<String> mtValidationErrors,
+                                       List<String> mxValidationErrors) {
         try {
             ConversionHistory history = new ConversionHistory();
             history.setConversionDate(LocalDateTime.now());
-            history.setStatus(status);
+            history.setStatus(status); // "SUCCESS" ou "ERROR"
             history.setInputFormat("pain.001");
             history.setOutputFormat("MT101");
 
-            if (mxMessage != null) {
-                history.setInputSize((long) mxMessage.toString().length());
+            // Contenus
+            if (mxRawContent != null) {
+                history.setMxContent(mxRawContent);
+                history.setInputSize((long) mxRawContent.length());
+            } else if (mxMessage != null) {
+                // fallback si nécessaire
+                String approx = String.valueOf(mxMessage);
+                history.setInputSize((long) approx.length());
             }
 
             if (mtMessage != null) {
+                history.setMtContent(mtMessage);
                 history.setOutputSize((long) mtMessage.length());
+            }
+
+            // Erreurs / Détails
+            history.setErrorMessage(errorMessage);
+            if (mtValidationErrors != null && !mtValidationErrors.isEmpty()) {
+                history.setMtValidationErrors(mtValidationErrors);
+            }
+            if (mxValidationErrors != null && !mxValidationErrors.isEmpty()) {
+                history.setMxValidationErrors(mxValidationErrors);
             }
 
             conversionHistoryRepository.save(history);
         } catch (Exception e) {
             logger.error("Erreur lors de la sauvegarde de l'historique", e);
         }
+    }
+
+    // Sauvegarde dédiée pour échec de validation XSD côté MX
+    public void saveValidationFailure(String mxRawContent, List<String> errors, String message) {
+        saveConversionHistory(null, mxRawContent, null, "ERROR", message, null, errors);
     }
 
     // Méthodes pour le dashboard
@@ -377,7 +368,8 @@ public class ConversionService {
 
     public long getFailedConversions() {
         try {
-            return conversionHistoryRepository.findByStatusOrderByConversionDateDesc("FAILED").size();
+            // Compter les statuts "ERROR"
+            return conversionHistoryRepository.findByStatusOrderByConversionDateDesc("ERROR").size();
         } catch (Exception e) {
             logger.error("Erreur lors du comptage des échecs", e);
             return 0;
@@ -385,12 +377,8 @@ public class ConversionService {
     }
 
     public long getPendingConversions() {
-        try {
-            return conversionHistoryRepository.findByStatusOrderByConversionDateDesc("PENDING").size();
-        } catch (Exception e) {
-            logger.error("Erreur lors du comptage des en attente", e);
-            return 0;
-        }
+        // Aucune gestion de "PENDING" actuellement
+        return 0;
     }
 
     public List<ConversionHistory> getRecentConversions(int limit) {

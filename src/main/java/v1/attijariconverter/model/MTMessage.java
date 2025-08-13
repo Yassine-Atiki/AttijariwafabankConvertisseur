@@ -56,24 +56,12 @@ public class MTMessage {
     private String currency;
     private String amount;
 
-    // Constructeur avec les champs principaux
+    // Constructeur sans valeurs par défaut
     public MTMessage(String transactionReferenceNumber, String valueDate, String orderingCustomer, String beneficiaryInstitution) {
         this.transactionReferenceNumber = transactionReferenceNumber;
         this.valueDate = valueDate;
         this.orderingCustomer = orderingCustomer;
         this.beneficiaryInstitution = beneficiaryInstitution;
-        this.messageIndexTotal = "1/1";
-        this.detailsOfCharges = "SHA";
-    }
-
-    // Méthodes utilitaires
-    public void setDefaultValues() {
-        if (messageIndexTotal == null) {
-            messageIndexTotal = "1/1";
-        }
-        if (detailsOfCharges == null) {
-            detailsOfCharges = "SHA";
-        }
     }
 
     @Override

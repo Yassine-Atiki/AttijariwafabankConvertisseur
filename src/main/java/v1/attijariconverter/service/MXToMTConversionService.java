@@ -23,48 +23,65 @@ public class MXToMTConversionService {
     private MTMessage convertToMTMessage(MXMessage mxMessage) {
         MTMessage mtMessage = new MTMessage();
 
-        // Field 20: Transaction Reference Number - utiliser l'ID du message
+        // Field 20: Transaction Reference Number - utiliser l'ID du message sans générer
         String transactionRef = mxMessage.getMessageId();
-        if (transactionRef == null || transactionRef.trim().isEmpty()) {
-            transactionRef = generateTransactionReference("DEFAULT");
+        if (transactionRef != null && !transactionRef.trim().isEmpty()) {
+            mtMessage.setTransactionReferenceNumber(transactionRef.trim());
         }
-        mtMessage.setTransactionReferenceNumber(transactionRef);
 
-        // Field 30: Value Date (format YYMMDD)
-        mtMessage.setValueDate(formatDateForMT(mxMessage.getRequestedExecutionDate()));
+        // Field 30: Value Date (format YYYYMMDD) — pas de valeur par défaut
+        String valDate = formatDateForMT(mxMessage.getRequestedExecutionDate());
+        if (valDate != null && !valDate.isEmpty()) {
+            mtMessage.setValueDate(valDate);
+        }
 
         // Field 52A/52D: Ordering Institution
-        mtMessage.setOrderingInstitution(mxMessage.getDebtorBIC());
-
-        // Field 50F/50K: Ordering Customer - utiliser les vraies données
-        mtMessage.setOrderingCustomer(formatOrderingCustomer(mxMessage.getDebtorName(), mxMessage.getDebtorAccount()));
-
-        // Field 59/59A: Beneficiary Institution - utiliser les vraies données du premier paiement
-        if (mxMessage.getPaymentInstructions() != null && !mxMessage.getPaymentInstructions().isEmpty()) {
-            MXMessage.PaymentInstruction firstPayment = mxMessage.getPaymentInstructions().get(0);
-            mtMessage.setBeneficiaryInstitution(formatBeneficiary(firstPayment.getCreditorName(), firstPayment.getCreditorAccount()));
-
-            // Field 57A/57D: Account With Institution
-            mtMessage.setAccountWithInstitution(firstPayment.getCreditorBIC());
-
-            // Field 32A: Value Date and Amount
-            mtMessage.setValueDateAndAmount(formatValueDateAndAmount(
-                mxMessage.getRequestedExecutionDate(),
-                firstPayment.getCurrency(),
-                firstPayment.getAmount()
-            ));
-        } else {
-            // Utiliser les données générales si pas d'instructions de paiement
-            mtMessage.setBeneficiaryInstitution(formatBeneficiary(mxMessage.getCreditorName(), mxMessage.getCreditorAccount()));
-            mtMessage.setAccountWithInstitution(mxMessage.getCreditorBIC());
-            mtMessage.setValueDateAndAmount(formatValueDateAndAmount(
-                mxMessage.getRequestedExecutionDate(),
-                mxMessage.getCurrency(),
-                mxMessage.getAmount()
-            ));
+        if (mxMessage.getDebtorBIC() != null && !mxMessage.getDebtorBIC().trim().isEmpty()) {
+            mtMessage.setOrderingInstitution(mxMessage.getDebtorBIC().trim());
         }
 
-        logger.info("Conversion MX vers MT réussie pour message: {}", mxMessage.getMessageId());
+        // Field 50F/50K: Ordering Customer - pas de valeur par défaut
+        String ordering = formatOrderingCustomer(mxMessage.getDebtorName(), mxMessage.getDebtorAccount());
+        if (ordering != null) {
+            mtMessage.setOrderingCustomer(ordering);
+        }
+
+        // Field 59/59A: Beneficiary Institution / Customer - pas de valeur par défaut
+        if (mxMessage.getPaymentInstructions() != null && !mxMessage.getPaymentInstructions().isEmpty()) {
+            MXMessage.PaymentInstruction firstPayment = mxMessage.getPaymentInstructions().get(0);
+            String beneficiary = formatBeneficiary(firstPayment.getCreditorName(), firstPayment.getCreditorAccount());
+            if (beneficiary != null) {
+                mtMessage.setBeneficiaryInstitution(beneficiary);
+            }
+
+            // Field 57A/57D: Account With Institution
+            if (firstPayment.getCreditorBIC() != null && !firstPayment.getCreditorBIC().trim().isEmpty()) {
+                mtMessage.setAccountWithInstitution(firstPayment.getCreditorBIC().trim());
+            }
+
+            // Field 32B: Currency and Amount (ne pas inclure si manquant)
+            String ccy = firstPayment.getCurrency();
+            String amt = firstPayment.getAmount();
+            if (ccy != null && !ccy.trim().isEmpty() && amt != null && !amt.trim().isEmpty()) {
+                String formatted = formatCurrencyAmount(ccy, amt);
+                mtMessage.setValueDateAndAmount(formatted);
+            }
+        } else {
+            // Données générales si présentes, sans valeurs par défaut
+            String beneficiary = formatBeneficiary(mxMessage.getCreditorName(), mxMessage.getCreditorAccount());
+            if (beneficiary != null) {
+                mtMessage.setBeneficiaryInstitution(beneficiary);
+            }
+            if (mxMessage.getCreditorBIC() != null && !mxMessage.getCreditorBIC().trim().isEmpty()) {
+                mtMessage.setAccountWithInstitution(mxMessage.getCreditorBIC().trim());
+            }
+            if (mxMessage.getCurrency() != null && !mxMessage.getCurrency().trim().isEmpty()
+                    && mxMessage.getAmount() != null && !mxMessage.getAmount().trim().isEmpty()) {
+                mtMessage.setValueDateAndAmount(formatCurrencyAmount(mxMessage.getCurrency(), mxMessage.getAmount()));
+            }
+        }
+
+        logger.info("Conversion MX vers MT (sans valeurs par défaut) pour message: {}", mxMessage.getMessageId());
         return mtMessage;
     }
 
@@ -116,8 +133,10 @@ public class MXToMTConversionService {
             mt101.append(":32B:").append(mtMessage.getValueDateAndAmount()).append("\n");
         }
 
-        // Details of Charges
-        mt101.append(":71A:SHA\n");
+        // Details of Charges: seulement si fourni
+        if (mtMessage.getDetailsOfCharges() != null && !mtMessage.getDetailsOfCharges().trim().isEmpty()) {
+            mt101.append(":71A:").append(mtMessage.getDetailsOfCharges().trim()).append("\n");
+        }
 
         mt101.append("-}\n");
 
@@ -128,83 +147,39 @@ public class MXToMTConversionService {
         return mt101.toString();
     }
 
-    private String generateTransactionReference(String messageId) {
-        if (messageId != null && !messageId.trim().isEmpty()) {
-            return "REF" + messageId.replaceAll("[^A-Za-z0-9]", "").substring(0, Math.min(messageId.length(), 10));
-        }
-        return "REF" + System.currentTimeMillis();
-    }
-
     private String formatDateForMT(String isoDate) {
         if (isoDate == null || isoDate.trim().isEmpty()) {
-            return LocalDateTime.now().format(DateTimeFormatter.ofPattern("yyyyMMdd"));
+            return null; // pas de fallback
         }
-
         try {
-            // Convertir de YYYY-MM-DD vers YYYYMMDD
-            if (isoDate.contains("-")) {
-                return isoDate.replaceAll("-", "").substring(0, 8);
-            }
-            return isoDate.substring(0, Math.min(isoDate.length(), 8));
+            String s = isoDate.contains("-") ? isoDate.replaceAll("-", "").substring(0, 8) : isoDate;
+            if (s.matches("\\d{8}")) return s;
+            return null;
         } catch (Exception e) {
-            logger.warn("Erreur de formatage de date: {}, utilisation de la date actuelle", isoDate);
-            return LocalDateTime.now().format(DateTimeFormatter.ofPattern("yyyyMMdd"));
+            return null;
         }
     }
 
     private String formatOrderingCustomer(String debtorName, String debtorAccount) {
-        StringBuilder result = new StringBuilder();
-
-        if (debtorName != null && !debtorName.trim().isEmpty()) {
-            result.append(debtorName.trim());
-        } else {
-            result.append("ORDERING CUSTOMER");
-        }
-
-        if (debtorAccount != null && !debtorAccount.trim().isEmpty()) {
-            result.append("\n").append(debtorAccount.trim());
-        }
-
-        return result.toString();
+        String name = (debtorName != null && !debtorName.trim().isEmpty()) ? debtorName.trim() : null;
+        String acc = (debtorAccount != null && !debtorAccount.trim().isEmpty()) ? debtorAccount.trim() : null;
+        if (name == null && acc == null) return null;
+        return acc == null ? name : name + "\n" + acc;
     }
 
     private String formatBeneficiary(String creditorName, String creditorAccount) {
-        StringBuilder result = new StringBuilder();
-
-        if (creditorName != null && !creditorName.trim().isEmpty()) {
-            result.append(creditorName.trim());
-        } else {
-            result.append("BENEFICIARY");
-        }
-
-        if (creditorAccount != null && !creditorAccount.trim().isEmpty()) {
-            result.append("\n").append(creditorAccount.trim());
-        }
-
-        return result.toString();
+        String name = (creditorName != null && !creditorName.trim().isEmpty()) ? creditorName.trim() : null;
+        String acc = (creditorAccount != null && !creditorAccount.trim().isEmpty()) ? creditorAccount.trim() : null;
+        if (name == null && acc == null) return null;
+        return acc == null ? name : name + "\n" + acc;
     }
 
-    private String formatValueDateAndAmount(String date, String currency, String amount) {
-        StringBuilder result = new StringBuilder();
-
-        // Date au format YYMMDD
-        String formattedDate = formatDateForMT(date);
-        if (formattedDate.length() >= 8) {
-            formattedDate = formattedDate.substring(2, 8); // Convertir YYYYMMDD vers YYMMDD
+    private String formatCurrencyAmount(String currency, String amount) {
+        if (currency == null || currency.trim().isEmpty() || amount == null || amount.trim().isEmpty()) {
+            return null;
         }
-
-        // Currency (3 caractères)
-        String curr = (currency != null && !currency.trim().isEmpty()) ? currency.trim() : "EUR";
-        if (curr.length() > 3) {
-            curr = curr.substring(0, 3);
-        }
-
-        // Amount
-        String amt = (amount != null && !amount.trim().isEmpty()) ? amount.trim() : "0,00";
-        amt = amt.replace(".", ","); // Format MT utilise la virgule
-
-        result.append(formattedDate).append(curr).append(amt);
-
-        return result.toString();
+        String curr = currency.trim();
+        String amt = amount.trim().replace('.', ',');
+        return curr + amt; // MT101 :32B: <CCY><AMT>
     }
 }

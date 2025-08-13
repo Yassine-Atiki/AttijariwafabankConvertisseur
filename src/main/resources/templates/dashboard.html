@@ -16,6 +16,26 @@
     </style>
 </head>
 <body>
+<!-- Barre de navigation supérieure -->
+<nav class="top-navbar">
+    <div class="user-profile">
+        <div class="profile-icon" th:text="${username != null ? username.substring(0,1).toUpperCase() : 'U'}">A</div>
+        <div class="profile-info">
+            <div class="profile-name" th:text="${username != null ? username : 'Utilisateur'}">admin</div>
+        </div>
+        <div class="profile-actions">
+            <form action="/logout" method="post" style="display: inline;">
+                <button type="submit" class="logout-btn" aria-label="Déconnexion">
+                    <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor">
+                        <path stroke-linecap="round" stroke-linejoin="round" d="M17 16l4-4m0 0l-4-4m4 4H3"/>
+                    </svg>
+                </button>
+                <input type="hidden" th:name="${_csrf.parameterName}" th:value="${_csrf.token}" />
+            </form>
+        </div>
+    </div>
+</nav>
+
 <div class="app-shell">
     <aside class="sidebar" role="navigation" aria-label="Menu principal">
         <div class="sidebar-header">
@@ -26,24 +46,16 @@
         </div>
         <nav class="sidebar-nav">
             <a id="nav-home" class="nav-item active" href="javascript:void(0)" onclick="showSection('view-home')" title="Accueil">
-                <span class="icon" aria-hidden="true">🏠</span>
                 <span class="label">Accueil</span>
             </a>
             <a id="nav-convert" class="nav-item" href="javascript:void(0)" onclick="showSection('view-convert')" title="Convertir">
-                <span class="icon" aria-hidden="true">🔄</span>
                 <span class="label">pain.001 → MT101</span>
             </a>
             <a id="nav-transform" class="nav-item" href="javascript:void(0)" onclick="showSection('view-transform')" title="Historique">
-                <span class="icon" aria-hidden="true">📋</span>
                 <span class="label">Historique</span>
             </a>
             <a id="nav-reports" class="nav-item" href="javascript:void(0)" onclick="showSection('view-reports')" title="Rapports">
-                <span class="icon" aria-hidden="true">📊</span>
                 <span class="label">Rapports Erreurs</span>
-            </a>
-            <a id="nav-logout" class="nav-item logout-link" href="javascript:void(0)" onclick="logout()" title="Déconnexion">
-                <span class="icon" aria-hidden="true">🚪</span>
-                <span class="label">Déconnexion</span>
             </a>
         </nav>
     </aside>
@@ -56,7 +68,7 @@
                         <div class="welcome-row">
                             <div>
                                 <strong>Bienvenue dans le Convertisseur MX → MT</strong>
-                                <div class="muted">yassineatiki@attijariwafa.com</div>
+                                <div class="muted" th:text="${username != null ? username : 'Utilisateur'}">admin</div>
                             </div>
                             <button class="btn btn-primary" type="button" onclick="showSection('view-convert')">Nouvelle transformation</button>
                         </div>
@@ -68,68 +80,117 @@
                                 <div class="ring total" style="--v:.94"><div class="center">Σ</div></div>
                                 <div>
                                     <div class="metric-title">Total Messages</div>
-                                    <div class="metric-value" th:text="${totalConversions}">0</div>
+                                    <div class="metric-value" id="totalCount" th:text="${totalConversions}">0</div>
                                 </div>
                             </div>
                             <div class="metric-card">
                                 <div class="ring success" style="--v:.96"><div class="center">✓</div></div>
                                 <div>
                                     <div class="metric-title">Messages Valides</div>
-                                    <div class="metric-value" th:text="${validConversions}">0</div>
+                                    <div class="metric-value" id="validCount" th:text="${validConversions}">0</div>
                                 </div>
                             </div>
                             <div class="metric-card">
                                 <div class="ring error" style="--v:.04"><div class="center">!</div></div>
                                 <div>
                                     <div class="metric-title">Messages en Erreur</div>
-                                    <div class="metric-value" th:text="${invalidConversions}">0</div>
+                                    <div class="metric-value" id="invalidCount" th:text="${invalidConversions}">0</div>
                                 </div>
                             </div>
                         </div>
                     </div>
+
+                    <!-- Graphique récapitulatif -->
+                    <div class="panel chart" aria-label="Graphique d’ensemble des messages">
+                        <div class="panel-header">
+                            <h2>Vue d’ensemble</h2>
+                        </div>
+                        <svg id="homeChart" viewBox="0 0 420 240" preserveAspectRatio="xMidYMid meet" role="img" aria-label="Barres: Total, Valides, Erreurs"></svg>
+                    </div>
                 </div>
+
+                <!-- Colonne droite: Calendrier / filtre par date -->
+                <aside class="calendar">
+                    <div class="panel" aria-labelledby="dateFilterTitle">
+                        <div class="cal-head">
+                            <span id="dateFilterTitle" class="month">Filtrer par date</span>
+                        </div>
+                        <div class="calendar-widget" aria-label="Calendrier de sélection">
+                            <div class="cw-header">
+                                <button type="button" class="nav prev" id="cwPrev" aria-label="Mois précédent">‹</button>
+                                <div class="cw-label" id="cwLabel">Mois Année</div>
+                                <button type="button" class="nav next" id="cwNext" aria-label="Mois suivant">›</button>
+                            </div>
+                            <div class="cw-weekdays" aria-hidden="true">
+                                <span>Mo</span><span>Tu</span><span>We</span><span>Th</span><span>Fr</span><span>Sa</span><span>Su</span>
+                            </div>
+                            <div class="cw-grid" id="cwGrid" role="grid" aria-label="Sélection de date"></div>
+                            <div class="muted" id="dateInfo">Statistiques du jour</div>
+                        </div>
+                    </div>
+                </aside>
             </div>
         </section>
 
         <section id="view-convert" class="view" aria-label="Conversion pain.001 vers MT101">
             <div class="container">
-                <h1>🔄 Convertisseur MX PAIN 001 → MT 101</h1>
+                <h1>Convertisseur MX PAIN 001 → MT 101</h1>
 
                 <div class="panel">
-                    <h2>Paramètres de Conversion</h2>
-                    <p>Type source : MX PAIN 001 v3 (ISO 20022)</p>
-                    <p>Type cible : MT 101 (SWIFT FIN)</p>
-                </div>
-
-                <div class="panel">
-                    <h2>Zone de Conversion</h2>
-                    <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 20px;">
-                        <div>
-                            <h3>Entrée MX PAIN 001</h3>
-                            <textarea id="mx-input" rows="15" style="width: 100%; font-family: monospace;"
-                                      placeholder="Collez votre message MX PAIN 001 ici..."></textarea>
-                            <div style="margin-top: 10px;">
-                                <input type="file" id="file-input" accept=".xml" onchange="loadFile(this)">
-                                <button onclick="convertMX()" style="margin-left: 10px;">🔄 Convertir</button>
-                                <button onclick="clearAll()" style="margin-left: 10px;">🗑️ Vider</button>
-                            </div>
+                    <div class="panel-header">
+                        <h2>Paramètres de conversion</h2>
+                    </div>
+                    <div class="options-grid">
+                        <div class="field" style="grid-column: span 6;">
+                            <span>Type source</span>
+                            <input type="text" value="MX PAIN 001 v3 (ISO 20022)" readonly />
                         </div>
-                        <div>
-                            <h3>Sortie MT 101</h3>
-                            <textarea id="mt-output" rows="15" style="width: 100%; font-family: monospace;"
-                                      placeholder="Le message MT 101 apparaîtra ici..." readonly></textarea>
-                            <div style="margin-top: 10px;">
-                                <button onclick="copyMT()">📋 Copier</button>
-                                <button onclick="downloadMT()" style="margin-left: 10px;">💾 Télécharger</button>
-                            </div>
+                        <div class="field" style="grid-column: span 6;">
+                            <span>Type cible</span>
+                            <input type="text" value="MT 101 (SWIFT FIN)" readonly />
                         </div>
                     </div>
                 </div>
 
                 <div class="panel">
-                    <h3>Statut de Validation</h3>
+                    <div class="panel-header">
+                        <h2>Zone de conversion</h2>
+                        <div class="panel-actions">
+                            <label class="btn btn-secondary file-label">
+                                Importer un XML
+                                <input type="file" id="file-input" accept=".xml" onchange="loadFile(this)">
+                            </label>
+                            <button class="btn btn-outline" onclick="clearAll()">Vider</button>
+                            <button class="btn btn-primary" onclick="convertMX()">Convertir</button>
+                        </div>
+                    </div>
+
+                    <div class="dropzone">Glissez-déposez votre fichier ici ou utilisez « Importer un XML »</div>
+
+                    <div class="grid io">
+                        <div class="input">
+                            <div class="panel-header">
+                                <h2>Entrée MX PAIN 001</h2>
+                            </div>
+                            <textarea id="mx-input" rows="18" placeholder="Collez votre message MX PAIN 001 ici..."></textarea>
+                        </div>
+                        <div class="output">
+                            <div class="panel-header">
+                                <h2>Sortie MT 101</h2>
+                                <div class="panel-actions">
+                                    <button class="btn btn-outline" onclick="copyMT()">Copier</button>
+                                    <button class="btn btn-secondary" onclick="downloadMT()">Télécharger</button>
+                                </div>
+                            </div>
+                            <textarea id="mt-output" rows="18" placeholder="Le message MT 101 apparaîtra ici..." readonly></textarea>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="panel validation">
+                    <h3>Statut de validation</h3>
                     <div id="validation-status">
-                        <p>ℹ️ Prêt pour la conversion</p>
+                        <!-- Rendu dynamique par updateValidationStatus() -->
                     </div>
                 </div>
             </div>
@@ -137,48 +198,75 @@
 
         <section id="view-transform" class="view" aria-label="Historique des Conversions">
             <div class="container">
-                <h1>📋 Historique des Conversions</h1>
+                <h1>Historique des conversions</h1>
                 <div class="panel">
-                    <h2>Conversions MX vers MT101</h2>
-                    <table style="width: 100%; border-collapse: collapse;">
-                        <thead>
-                            <tr style="background-color: #f5f5f5;">
-                                <th style="padding: 10px; border: 1px solid #ddd;">Date</th>
-                                <th style="padding: 10px; border: 1px solid #ddd;">Format</th>
-                                <th style="padding: 10px; border: 1px solid #ddd;">Statut</th>
-                                <th style="padding: 10px; border: 1px solid #ddd;">Actions</th>
-                            </tr>
-                        </thead>
-                        <tbody>
-                            <tr th:each="history : ${conversionHistory}">
-                                <td style="padding: 10px; border: 1px solid #ddd;" th:text="${#temporals.format(history.conversionDate, 'dd/MM/yyyy HH:mm')}">-</td>
-                                <td style="padding: 10px; border: 1px solid #ddd;" th:text="${history.inputFormat + ' → ' + history.outputFormat}">-</td>
-                                <td style="padding: 10px; border: 1px solid #ddd;" th:text="${history.status}">-</td>
-                                <td style="padding: 10px; border: 1px solid #ddd;">
-                                    <button onclick="viewDetails()">Détails</button>
-                                </td>
-                            </tr>
-                            <tr th:if="${#lists.isEmpty(conversionHistory)}">
-                                <td colspan="4" style="padding: 20px; text-align: center; font-style: italic;">
-                                    Aucun historique disponible
-                                </td>
-                            </tr>
-                        </tbody>
-                    </table>
+                    <div class="panel-header">
+                        <h2>Conversions MX → MT101</h2>
+                    </div>
+                    <div class="table-wrap">
+                        <table>
+                            <thead>
+                                <tr>
+                                    <th>Date</th>
+                                    <th>Format</th>
+                                    <th>Statut</th>
+                                    <th>Télécharger MT101</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                <tr th:each="history : ${conversionHistory}">
+                                    <td th:text="${#temporals.format(history.conversionDate, 'dd/MM/yyyy HH:mm')}">-</td>
+                                    <td th:text="${history.inputFormat + ' → ' + history.outputFormat}">-</td>
+                                    <td>
+                                        <span class="chip" th:classappend="${history.status == 'SUCCESS' or history.status == 'VALID' ? ' ok' : ' warn'}" th:text="${history.status}">-</span>
+                                    </td>
+                                    <td>
+                                        <a class="btn btn-outline" th:if="${history.mtContent != null}" th:href="@{/api/conversion/history/{id}/download(id=${history.id})}" target="_blank">Télécharger</a>
+                                        <span th:if="${history.mtContent == null}" class="muted">Indisponible</span>
+                                    </td>
+                                </tr>
+                                <tr th:if="${#lists.isEmpty(conversionHistory)}">
+                                    <td colspan="4" style="padding: 20px; text-align: center; font-style: italic;">Aucun historique disponible</td>
+                                </tr>
+                            </tbody>
+                        </table>
+                    </div>
                 </div>
             </div>
         </section>
 
         <section id="view-reports" class="view" aria-label="Rapports et Logs">
             <div class="container">
-                <h1>📊 Rapports & Logs</h1>
-                <div class="panel">
-                    <h2>Logs d'Application</h2>
-                    <div style="background-color: #f8f9fa; padding: 15px; border-radius: 5px; font-family: monospace; max-height: 400px; overflow-y: auto;">
-                        <div>2025-08-13 10:30:00 INFO  - Application démarrée</div>
-                        <div>2025-08-13 10:30:15 INFO  - Validation XSD initialisée</div>
-                        <div>2025-08-13 10:30:30 INFO  - Service de conversion MT101 activé</div>
-                        <div>2025-08-13 10:30:45 INFO  - MongoDB connecté : mx_mt_converter_db</div>
+                <h1>Rapports & Logs</h1>
+                <div class="panel validation">
+                    <div class="panel-header">
+                        <h2>Conversions en échec</h2>
+                    </div>
+
+                    <div th:if="${#lists.isEmpty(failedConversionsList)}" style="padding: 12px; color: #6b7280; font-style: italic;">
+                        Aucune conversion en échec.
+                    </div>
+
+                    <div th:each="item : ${failedConversionsList}" class="validation-card error" style="margin-bottom: 10px;">
+                        <div class="header">
+                            <div class="state error">
+                                <span class="state-icon">✕</span>
+                                <span class="state-text">
+                                    <span th:text="${#temporals.format(item.conversionDate, 'dd/MM/yyyy HH:mm')}">--/--/---- --:--</span>
+                                    —
+                                    <span th:text="${item.errorMessage != null ? item.errorMessage : 'Erreur de conversion'}">Erreur</span>
+                                </span>
+                            </div>
+                            <div class="muted" style="font-size:12px;" th:text="${item.inputFormat + ' → ' + item.outputFormat}">pain.001 → MT101</div>
+                        </div>
+
+                        <div class="details" th:if="${(item.mxValidationErrors != null and !item.mxValidationErrors.isEmpty()) or (item.mtValidationErrors != null and !item.mtValidationErrors.isEmpty())}">
+                            <div class="details-title">Détails de validation</div>
+                            <ul class="details-list">
+                                <li class="detail error-item" th:each="err : ${item.mxValidationErrors}" th:text="${err}">Erreur MX</li>
+                                <li class="detail error-item" th:each="err : ${item.mtValidationErrors}" th:text="${err}">Erreur MT</li>
+                            </ul>
+                        </div>
                     </div>
                 </div>
             </div>
@@ -214,13 +302,6 @@ function showSection(sectionId) {
     const activeNav = document.getElementById(navId);
     if (activeNav) {
         activeNav.classList.add('active');
-    }
-}
-
-// Fonction de déconnexion
-function logout() {
-    if (confirm('Êtes-vous sûr de vouloir vous déconnecter ?')) {
-        window.location.href = '/logout';
     }
 }
 
@@ -275,27 +356,63 @@ async function convertMX() {
     }
 }
 
-// Mettre à jour le statut de validation
+// Helpers statut
+function getStatusType(message) {
+    const m = (message || '').toLowerCase();
+    if (m.includes('❌') || m.includes('erreur')) return 'error';
+    if (m.includes('✅') || m.includes('réuss') || m.includes('succès')) return 'ok';
+    if (m.includes('⚠') || m.includes('avert') || m.includes('warn')) return 'warn';
+    return 'info';
+}
+function stripLeadingEmoji(text) {
+    return (text || '').replace(/^([\p{Emoji_Presentation}\p{Emoji}\u200d\ufe0f\s]+)/u, '').trim() || text;
+}
+function statusIcon(type) {
+    switch(type){
+        case 'ok': return '✓';
+        case 'warn': return '⚠';
+        case 'error': return '✕';
+        default: return 'ℹ';
+    }
+}
+
+// Mettre à jour le statut de validation (version améliorée)
 function updateValidationStatus(message, validationErrors = null) {
     const statusDiv = document.getElementById('validation-status');
-    let html = '<p>' + message + '</p>';
+    const type = getStatusType(message);
+    const cleanMessage = stripLeadingEmoji(message);
 
+    let detailsHtml = '';
     if (validationErrors && validationErrors.length > 0) {
-        html += '<div style="margin-top: 10px;"><strong>Détails de validation:</strong><ul>';
-        validationErrors.forEach(error => {
-            html += '<li style="color: #d32f2f;">' + error + '</li>';
-        });
-        html += '</ul></div>';
+        const items = validationErrors
+            .map(err => `<li class="detail error-item">${err}</li>`) // erreurs en rouge
+            .join('');
+        detailsHtml = `
+            <div class="details">
+                <div class="details-title">Détails de validation</div>
+                <ul class="details-list">${items}</ul>
+            </div>`;
     }
 
-    statusDiv.innerHTML = html;
+    statusDiv.innerHTML = `
+        <div class="validation-card ${type}">
+            <div class="header">
+                <div class="state ${type}">
+                    <span class="state-icon">${statusIcon(type)}</span>
+                    <span class="state-text">${cleanMessage}</span>
+                </div>
+            </div>
+            ${detailsHtml}
+        </div>
+    `;
 }
 
 // Vider les zones de texte
 function clearAll() {
     document.getElementById('mx-input').value = '';
     document.getElementById('mt-output').value = '';
-    document.getElementById('file-input').value = '';
+    const input = document.getElementById('file-input');
+    if (input) input.value = '';
     updateValidationStatus('ℹ️ Prêt pour la conversion');
 }
 
@@ -335,13 +452,224 @@ function viewDetails() {
     alert('Fonctionnalité en développement');
 }
 
-// Initialisation au chargement de la page
+// Dessiner un bar chart simple dans un SVG
+function renderHomeChart() {
+    const total = parseInt((document.getElementById('totalCount')||{}).innerText || '0', 10);
+    const valids = parseInt((document.getElementById('validCount')||{}).innerText || '0', 10);
+    const errors = parseInt((document.getElementById('invalidCount')||{}).innerText || '0', 10);
+
+    const svg = document.getElementById('homeChart');
+    if (!svg) return;
+
+    const width = 420; const height = 240; const pad = {l:48, r:16, t:16, b:40};
+    const chartW = width - pad.l - pad.r; const chartH = height - pad.t - pad.b;
+
+    const data = [
+        { label: 'Total', value: total, color: getComputedStyle(document.documentElement).getPropertyValue('--awb-orange') || '#f08a00' },
+        { label: 'Valides', value: valids, color: '#16a34a' },
+        { label: 'Erreurs', value: errors, color: getComputedStyle(document.documentElement).getPropertyValue('--awb-red') || '#e03c31' }
+    ];
+
+    const max = Math.max(1, ...data.map(d => d.value));
+    const barW = Math.min(80, Math.floor(chartW / (data.length * 2)));
+    const gap = Math.floor((chartW - data.length * barW) / (data.length + 1));
+
+    // Reset
+    svg.innerHTML = '';
+
+    // Axes (Y grid)
+    const steps = 4;
+    for (let i=0; i<=steps; i++) {
+        const y = pad.t + chartH - (i/steps) * chartH;
+        const line = document.createElementNS('http://www.w3.org/2000/svg', 'line');
+        line.setAttribute('x1', pad.l);
+        line.setAttribute('x2', pad.l + chartW);
+        line.setAttribute('y1', y);
+        line.setAttribute('y2', y);
+        line.setAttribute('stroke', '#e5e7eb');
+        line.setAttribute('stroke-width', '1');
+        svg.appendChild(line);
+
+        const label = document.createElementNS('http://www.w3.org/2000/svg', 'text');
+        label.setAttribute('x', pad.l - 6);
+        label.setAttribute('y', y + 4);
+        label.setAttribute('text-anchor', 'end');
+        label.setAttribute('font-size', '11');
+        label.setAttribute('fill', '#6b7280');
+        label.textContent = Math.round((i/steps) * max);
+        svg.appendChild(label);
+    }
+
+    // Bars + labels
+    data.forEach((d, idx) => {
+        const x = pad.l + gap + idx * (barW + gap);
+        const h = d.value === 0 ? 0 : Math.round((d.value / max) * chartH);
+        const y = pad.t + chartH - h;
+
+        const rect = document.createElementNS('http://www.w3.org/2000/svg', 'rect');
+        rect.setAttribute('x', x);
+        rect.setAttribute('y', y);
+        rect.setAttribute('width', barW);
+        rect.setAttribute('height', h);
+        rect.setAttribute('rx', 6);
+        rect.setAttribute('fill', d.color.trim());
+        rect.setAttribute('opacity', '0.9');
+        svg.appendChild(rect);
+
+        // Value label
+        const val = document.createElementNS('http://www.w3.org/2000/svg', 'text');
+        val.setAttribute('x', x + barW/2);
+        val.setAttribute('y', y - 6);
+        val.setAttribute('text-anchor', 'middle');
+        val.setAttribute('font-size', '12');
+        val.setAttribute('fill', '#111827');
+        val.textContent = d.value;
+        svg.appendChild(val);
+
+        // Category label
+        const lab = document.createElementNS('http://www.w3.org/2000/svg', 'text');
+        lab.setAttribute('x', x + barW/2);
+        lab.setAttribute('y', pad.t + chartH + 18);
+        lab.setAttribute('text-anchor', 'middle');
+        lab.setAttribute('font-size', '12');
+        lab.setAttribute('fill', '#374151');
+        lab.textContent = d.label;
+        svg.appendChild(lab);
+    });
+}
+
+// ---- Filtre par date (stats + graphe) ----
+function todayStr() {
+    const d = new Date();
+    const m = String(d.getMonth()+1).padStart(2,'0');
+    const day = String(d.getDate()).padStart(2,'0');
+    return `${d.getFullYear()}-${m}-${day}`;
+}
+
+// Utils date (ISO <-> Date)
+function pad2(n){return String(n).padStart(2,'0');}
+function toISODateStr(d){return `${d.getFullYear()}-${pad2(d.getMonth()+1)}-${pad2(d.getDate())}`;}
+
+// Chargement des stats pour une date ISO (YYYY-MM-DD)
+async function loadStatsForDate(dateStr) {
+    try {
+        const res = await fetch(`/api/stats/by-date?date=${dateStr}`);
+        if (!res.ok) throw new Error('HTTP ' + res.status);
+        const data = await res.json();
+        const totalEl = document.getElementById('totalCount');
+        const validEl = document.getElementById('validCount');
+        const invalidEl = document.getElementById('invalidCount');
+        if (totalEl) totalEl.innerText = data.total ?? 0;
+        if (validEl) validEl.innerText = data.valid ?? 0;
+        if (invalidEl) invalidEl.innerText = data.error ?? 0;
+        const info = document.getElementById('dateInfo');
+        if (info) info.innerText = `Statistiques du ${dateStr}`;
+        renderHomeChart();
+    } catch (e) {
+        console.error('Erreur stats by date:', e);
+    }
+}
+
+// Calendrier moderne intégré (toujours visible)
+let cwCurrent = new Date(); // mois affiché (1er du mois)
+let cwSelected = null;      // date sélectionnée
+
+function buildCwDayCell(label, cls, dateObj){
+    const btn = document.createElement('button');
+    btn.type = 'button';
+    btn.className = 'cw-day ' + (cls||'');
+    btn.textContent = label;
+    if (dateObj) {
+        const iso = toISODateStr(dateObj);
+        btn.setAttribute('aria-label', iso);
+        btn.addEventListener('click', ()=>{
+            cwSelected = dateObj;
+            renderCalendarWidget();
+            loadStatsForDate(iso);
+        });
+    } else {
+        btn.disabled = true;
+        btn.setAttribute('aria-disabled','true');
+    }
+    return btn;
+}
+
+function renderCalendarWidget(){
+    const label = document.getElementById('cwLabel');
+    const grid = document.getElementById('cwGrid');
+    if(!label || !grid) return;
+
+    // Titre mois/année
+    const monthName = cwCurrent.toLocaleString('fr-FR', { month: 'long' });
+    label.textContent = monthName.charAt(0).toUpperCase() + monthName.slice(1) + ' ' + cwCurrent.getFullYear();
+
+    // Grille 7×6
+    grid.innerHTML = '';
+    const first = new Date(cwCurrent.getFullYear(), cwCurrent.getMonth(), 1);
+    const startDay = (first.getDay() || 7); // Lundi=1 .. Dimanche=7
+    const daysInMonth = new Date(cwCurrent.getFullYear(), cwCurrent.getMonth()+1, 0).getDate();
+    const prevDaysToShow = startDay - 1; // 0..6
+    const prevMonthLast = new Date(cwCurrent.getFullYear(), cwCurrent.getMonth(), 0).getDate();
+    const afterDaysToShow = 42 - (prevDaysToShow + daysInMonth);
+
+    const today = new Date();
+    const sameMonthAsToday = (today.getFullYear()===cwCurrent.getFullYear() && today.getMonth()===cwCurrent.getMonth());
+
+    // Jours du mois précédent
+    for(let i=prevDaysToShow; i>0; i--){
+        grid.appendChild(buildCwDayCell(prevMonthLast - i + 1, 'muted', null));
+    }
+    // Jours du mois courant
+    for(let d=1; d<=daysInMonth; d++){
+        const dateObj = new Date(cwCurrent.getFullYear(), cwCurrent.getMonth(), d);
+        const isSelected = cwSelected && toISODateStr(dateObj) === toISODateStr(cwSelected);
+        const isToday = sameMonthAsToday && d === today.getDate();
+        let cls = 'current';
+        if (isSelected) cls = 'selected';
+        else if (isToday) cls = 'today';
+        grid.appendChild(buildCwDayCell(d, cls, dateObj));
+    }
+    // Jours du mois suivant (compléter à 42)
+    for(let i=1; i<=afterDaysToShow; i++){
+        grid.appendChild(buildCwDayCell(i, 'muted', null));
+    }
+}
+
+function cwPrevMonth(){ cwCurrent = new Date(cwCurrent.getFullYear(), cwCurrent.getMonth()-1, 1); renderCalendarWidget(); }
+function cwNextMonth(){ cwCurrent = new Date(cwCurrent.getFullYear(), cwCurrent.getMonth()+1, 1); renderCalendarWidget(); }
+
+// Initialisation
 document.addEventListener('DOMContentLoaded', function() {
     console.log('🚀 Dashboard initialisé');
     updateValidationStatus('ℹ️ Prêt pour la conversion');
 
-    // S'assurer que la section d'accueil est affichée par défaut
+    // S'assurer que la section d\'accueil est affichée par défaut
     showSection('view-home');
+
+    // Dessiner le graphique d'accueil
+    renderHomeChart();
+
+    // Init date picker à aujourd'hui et charger stats du jour
+    const input = document.getElementById('statsDate');
+    if (input) {
+        const t = todayStr();
+        input.value = t;
+        input.max = t;
+        loadStatsForDate(t);
+    }
+
+    // Init calendrier moderne (toujours visible)
+    const now = new Date();
+    cwCurrent = new Date(now.getFullYear(), now.getMonth(), 1);
+    cwSelected = now;
+
+    const prev = document.getElementById('cwPrev');
+    const next = document.getElementById('cwNext');
+    if(prev) prev.addEventListener('click', cwPrevMonth);
+    if(next) next.addEventListener('click', cwNextMonth);
+
+    renderCalendarWidget();
+    loadStatsForDate(toISODateStr(now));
 });
 </script>
 </body>
