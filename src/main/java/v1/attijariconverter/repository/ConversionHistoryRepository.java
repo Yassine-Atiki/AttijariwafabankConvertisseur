@@ -15,4 +15,14 @@ public interface ConversionHistoryRepository extends MongoRepository<ConversionH
     List<ConversionHistory> findByStatusOrderByConversionDateDesc(String status);
 
     List<ConversionHistory> findTop10ByOrderByConversionDateDesc();
+
+    List<ConversionHistory> findByOwnerUsernameOrderByConversionDateDesc(String ownerUsername);
+
+    List<ConversionHistory> findByOwnerUsernameAndStatusOrderByConversionDateDesc(String ownerUsername, String status);
+
+    List<ConversionHistory> findTop10ByOwnerUsernameOrderByConversionDateDesc(String ownerUsername);
+
+    List<ConversionHistory> findByOwnerUsernameAndConversionDateBetween(String ownerUsername, LocalDateTime start, LocalDateTime end);
+
+    List<ConversionHistory> findByOwnerUsernameNotOrderByConversionDateDesc(String ownerUsername);
 }

@@ -57,6 +57,9 @@
             <a id="nav-reports" class="nav-item" href="javascript:void(0)" onclick="showSection('view-reports')" title="Rapports">
                 <span class="label">Rapports Erreurs</span>
             </a>
+            <a id="nav-admin-users" class="nav-item" href="javascript:void(0)" th:if="${isAdmin}" onclick="showSection('view-admin-users')" title="Autres utilisateurs">
+                <span class="label">Autres Utilisateurs</span>
+            </a>
         </nav>
     </aside>
 
@@ -221,8 +224,8 @@
                                         <span class="chip" th:classappend="${history.status == 'SUCCESS' or history.status == 'VALID' ? ' ok' : ' warn'}" th:text="${history.status}">-</span>
                                     </td>
                                     <td>
-                                        <a class="btn btn-outline" th:if="${history.mtContent != null}" th:href="@{/api/conversion/history/{id}/download(id=${history.id})}" target="_blank">Télécharger</a>
-                                        <span th:if="${history.mtContent == null}" class="muted">Indisponible</span>
+                                        <a class="btn btn-outline" th:if="${history.mtContent != null and (history.status == 'SUCCESS' or history.status == 'VALID')}" th:href="@{/api/conversion/history/{id}/download(id=${history.id})}" target="_blank">Télécharger</a>
+                                        <span th:if="${history.mtContent == null or (history.status != 'SUCCESS' and history.status != 'VALID')}" class="muted">Indisponible</span>
                                     </td>
                                 </tr>
                                 <tr th:if="${#lists.isEmpty(conversionHistory)}">
@@ -267,6 +270,45 @@
                                 <li class="detail error-item" th:each="err : ${item.mtValidationErrors}" th:text="${err}">Erreur MT</li>
                             </ul>
                         </div>
+                    </div>
+                </div>
+            </div>
+        </section>
+
+        <section id="view-admin-users" class="view" th:if="${isAdmin}" aria-label="Historique autres utilisateurs">
+            <div class="container">
+                <h1>Historique des autres utilisateurs</h1>
+                <div class="panel">
+                    <div class="panel-header">
+                        <h2>Conversions des autres comptes</h2>
+                    </div>
+                    <div class="table-wrap">
+                        <table>
+                            <thead>
+                                <tr>
+                                    <th>Date</th>
+                                    <th>Utilisateur</th>
+                                    <th>Format</th>
+                                    <th>Statut</th>
+                                    <th>Télécharger MT101</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                <tr th:each="h : ${otherUsersHistory}">
+                                    <td th:text="${#temporals.format(h.conversionDate, 'dd/MM/yyyy HH:mm')}">-</td>
+                                    <td th:text="${h.ownerUsername}">user</td>
+                                    <td th:text="${h.inputFormat + ' → ' + h.outputFormat}">-</td>
+                                    <td><span class="chip" th:classappend="${h.status=='SUCCESS' ? ' ok':' warn'}" th:text="${h.status}">STATUS</span></td>
+                                    <td>
+                                        <a class="btn btn-outline" th:if="${h.mtContent != null and h.status=='SUCCESS'}" th:href="@{/api/conversion/history/{id}/download(id=${h.id})}" target="_blank">Télécharger</a>
+                                        <span th:if="${h.mtContent == null or h.status!='SUCCESS'}" class="muted">Indisponible</span>
+                                    </td>
+                                </tr>
+                                <tr th:if="${#lists.isEmpty(otherUsersHistory)}">
+                                    <td colspan="5" style="padding:18px;text-align:center;font-style:italic;">Aucune conversion d'autres utilisateurs</td>
+                                </tr>
+                            </tbody>
+                        </table>
                     </div>
                 </div>
             </div>

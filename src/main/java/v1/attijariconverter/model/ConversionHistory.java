@@ -50,6 +50,9 @@ public class ConversionHistory {
     private String debtorAccount;
     private String requestedExecutionDate;
 
+    // Nouvel attribut: identifiant de l'utilisateur propriétaire
+    private String ownerUsername;
+
     // Constructeur avec paramètres principaux
     public ConversionHistory(String status, String inputFormat, String outputFormat) {
         this.conversionDate = LocalDateTime.now();

@@ -15,6 +15,9 @@ import java.time.format.DateTimeFormatter;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.regex.Pattern;
+import org.springframework.security.core.Authentication;
+import org.springframework.security.core.GrantedAuthority;
+import org.springframework.security.core.context.SecurityContextHolder;
 
 @Service
 public class ConversionService {
@@ -270,6 +273,20 @@ public class ConversionService {
         return isValid;
     }
 
+    private String currentUsername() {
+        Authentication auth = SecurityContextHolder.getContext().getAuthentication();
+        if (auth == null || auth.getName() == null) return "anonymous";
+        return auth.getName();
+    }
+
+    private boolean isAdmin(Authentication auth){
+        if(auth==null) return false;
+        for(GrantedAuthority ga: auth.getAuthorities()){
+            if("ROLE_ADMIN".equals(ga.getAuthority())) return true;
+        }
+        return false;
+    }
+
     // Sauvegarde centralisée de l'historique
     private void saveConversionHistory(MXMessage mxMessage,
                                        String mxRawContent,
@@ -284,6 +301,7 @@ public class ConversionService {
             history.setStatus(status); // "SUCCESS" ou "ERROR"
             history.setInputFormat("pain.001");
             history.setOutputFormat("MT101");
+            history.setOwnerUsername(currentUsername());
 
             // Contenus
             if (mxRawContent != null) {
@@ -323,7 +341,7 @@ public class ConversionService {
     // Méthodes pour le dashboard
     public List<ConversionHistory> getConversionHistory() {
         try {
-            return conversionHistoryRepository.findTop10ByOrderByConversionDateDesc();
+            return conversionHistoryRepository.findTop10ByOwnerUsernameOrderByConversionDateDesc(currentUsername());
         } catch (Exception e) {
             logger.error("Erreur lors de la récupération de l'historique", e);
             return new ArrayList<>();
@@ -332,7 +350,7 @@ public class ConversionService {
 
     public List<ConversionHistory> getValidConversions() {
         try {
-            return conversionHistoryRepository.findByStatusOrderByConversionDateDesc("SUCCESS");
+            return conversionHistoryRepository.findByOwnerUsernameAndStatusOrderByConversionDateDesc(currentUsername(), "SUCCESS");
         } catch (Exception e) {
             logger.error("Erreur lors de la récupération des conversions valides", e);
             return new ArrayList<>();
@@ -341,7 +359,7 @@ public class ConversionService {
 
     public List<ConversionHistory> getInvalidConversions() {
         try {
-            return conversionHistoryRepository.findByStatusOrderByConversionDateDesc("ERROR");
+            return conversionHistoryRepository.findByOwnerUsernameAndStatusOrderByConversionDateDesc(currentUsername(), "ERROR");
         } catch (Exception e) {
             logger.error("Erreur lors de la récupération des conversions invalides", e);
             return new ArrayList<>();
@@ -350,7 +368,7 @@ public class ConversionService {
 
     public long getTotalConversions() {
         try {
-            return conversionHistoryRepository.count();
+            return conversionHistoryRepository.findByOwnerUsernameOrderByConversionDateDesc(currentUsername()).size();
         } catch (Exception e) {
             logger.error("Erreur lors du comptage total", e);
             return 0;
@@ -359,7 +377,7 @@ public class ConversionService {
 
     public long getSuccessfulConversions() {
         try {
-            return conversionHistoryRepository.findByStatusOrderByConversionDateDesc("SUCCESS").size();
+            return conversionHistoryRepository.findByOwnerUsernameAndStatusOrderByConversionDateDesc(currentUsername(), "SUCCESS").size();
         } catch (Exception e) {
             logger.error("Erreur lors du comptage des succès", e);
             return 0;
@@ -368,36 +386,26 @@ public class ConversionService {
 
     public long getFailedConversions() {
         try {
-            // Compter les statuts "ERROR"
-            return conversionHistoryRepository.findByStatusOrderByConversionDateDesc("ERROR").size();
+            return conversionHistoryRepository.findByOwnerUsernameAndStatusOrderByConversionDateDesc(currentUsername(), "ERROR").size();
         } catch (Exception e) {
             logger.error("Erreur lors du comptage des échecs", e);
             return 0;
         }
     }
 
-    public long getPendingConversions() {
-        // Aucune gestion de "PENDING" actuellement
-        return 0;
-    }
-
     public List<ConversionHistory> getRecentConversions(int limit) {
         try {
-            List<ConversionHistory> all = conversionHistoryRepository.findAll();
-            return all.stream()
-                .sorted((a, b) -> b.getConversionDate().compareTo(a.getConversionDate()))
-                .limit(limit)
-                .collect(java.util.stream.Collectors.toList());
+            List<ConversionHistory> all = conversionHistoryRepository.findByOwnerUsernameOrderByConversionDateDesc(currentUsername());
+            return all.stream().limit(limit).collect(java.util.stream.Collectors.toList());
         } catch (Exception e) {
             logger.error("Erreur lors de la récupération des conversions récentes", e);
             return new ArrayList<>();
         }
     }
 
-    // Nouvelles méthodes pour les graphiques
     public List<ConversionHistory> getAllConversions() {
         try {
-            return conversionHistoryRepository.findAll();
+            return conversionHistoryRepository.findByOwnerUsernameOrderByConversionDateDesc(currentUsername());
         } catch (Exception e) {
             logger.error("Erreur lors de la récupération de toutes les conversions", e);
             return new ArrayList<>();
@@ -408,7 +416,7 @@ public class ConversionService {
         try {
             LocalDateTime startOfDay = LocalDateTime.now().withHour(0).withMinute(0).withSecond(0).withNano(0);
             LocalDateTime endOfDay = startOfDay.plusDays(1);
-            return conversionHistoryRepository.findByConversionDateBetween(startOfDay, endOfDay);
+            return conversionHistoryRepository.findByOwnerUsernameAndConversionDateBetween(currentUsername(), startOfDay, endOfDay);
         } catch (Exception e) {
             logger.error("Erreur lors de la récupération des conversions d'aujourd'hui", e);
             return new ArrayList<>();
@@ -419,9 +427,20 @@ public class ConversionService {
         try {
             LocalDateTime startDate = LocalDateTime.now().minusDays(7);
             LocalDateTime endDate = LocalDateTime.now();
-            return conversionHistoryRepository.findByConversionDateBetween(startDate, endDate);
+            return conversionHistoryRepository.findByOwnerUsernameAndConversionDateBetween(currentUsername(), startDate, endDate);
         } catch (Exception e) {
             logger.error("Erreur lors de la récupération des conversions des 7 derniers jours", e);
+            return new ArrayList<>();
+        }
+    }
+
+    public List<ConversionHistory> getOtherUsersHistory(){
+        try {
+            Authentication auth = SecurityContextHolder.getContext().getAuthentication();
+            if(!isAdmin(auth)) return new ArrayList<>();
+            return conversionHistoryRepository.findByOwnerUsernameNotOrderByConversionDateDesc(currentUsername());
+        } catch (Exception e){
+            logger.error("Erreur récupération autres historiques", e);
             return new ArrayList<>();
         }
     }
