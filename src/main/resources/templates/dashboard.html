@@ -332,7 +332,7 @@
 
 <script>
 // Navigation entre les sections
-function showSection(sectionId) {
+function showSection(sectionId, pushState = true) {
     console.log('Navigation vers: ' + sectionId);
 
     // Masquer toutes les vues
@@ -359,6 +359,17 @@ function showSection(sectionId) {
     if (activeNav) {
         activeNav.classList.add('active');
     }
+
+    // Persistance (éviter retour Accueil après reload)
+    try {
+        localStorage.setItem('activeSection', sectionId);
+        if (pushState) {
+            // Utiliser hash pour permettre navigation via favoris / retour
+            if (window.location.hash !== '#' + sectionId) {
+                history.replaceState(null, '', '#' + sectionId);
+            }
+        }
+    } catch(e) { /* stockage non critique */ }
 }
 
 // Charger un fichier
@@ -699,8 +710,18 @@ document.addEventListener('DOMContentLoaded', function() {
     console.log('🚀 Dashboard initialisé');
     updateValidationStatus('ℹ️ Prêt pour la conversion');
 
-    // S'assurer que la section d\'accueil est affichée par défaut
-    showSection('view-home');
+    // Restaurer la dernière section choisie (hash > localStorage > accueil)
+    let initialSection = null;
+    if (window.location.hash && document.getElementById(window.location.hash.substring(1))) {
+        initialSection = window.location.hash.substring(1);
+    } else {
+        const stored = localStorage.getItem('activeSection');
+        if (stored && document.getElementById(stored)) {
+            initialSection = stored;
+        }
+    }
+    if (!initialSection) initialSection = 'view-home';
+    showSection(initialSection, false);
 
     // Dessiner le graphique d'accueil
     renderHomeChart();

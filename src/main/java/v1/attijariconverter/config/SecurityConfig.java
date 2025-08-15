@@ -21,7 +21,6 @@ public class SecurityConfig {
         http
             .authorizeHttpRequests((authz) -> authz
                 .requestMatchers("/css/**", "/images/**", "/js/**", "/static/**").permitAll()
-                .requestMatchers("/api/admin/**").hasRole("ADMIN") // Restriction d'accès aux endpoints admin
                 .requestMatchers("/api/**").permitAll() // Autoriser l'accès aux API REST
                 .requestMatchers("/login").permitAll()
                 .anyRequest().authenticated()
