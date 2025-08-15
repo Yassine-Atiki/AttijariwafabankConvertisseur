@@ -64,6 +64,9 @@
     </aside>
 
     <div class="content">
+        <!-- Zone notifications admin -->
+        <div id="admin-messages" style="position:fixed;top:70px;right:20px;z-index:999;display:flex;flex-direction:column;gap:8px;max-width:320px;"></div>
+
         <section id="view-home" class="view is-visible welcome" aria-label="Accueil">
             <div class="home-grid">
                 <div class="home-main">
@@ -205,6 +208,9 @@
                 <div class="panel">
                     <div class="panel-header">
                         <h2>Conversions MX → MT101</h2>
+                        <div th:if="${isAdmin}" class="panel-actions" style="display:flex;gap:8px;align-items:center;">
+                            <button class="btn btn-outline" onclick="deleteOwnHistory()">🗑 Supprimer mon historique</button>
+                        </div>
                     </div>
                     <div class="table-wrap">
                         <table>
@@ -281,6 +287,10 @@
                 <div class="panel">
                     <div class="panel-header">
                         <h2>Conversions des autres comptes</h2>
+                        <div class="panel-actions" style="display:flex;gap:6px;align-items:center;">
+                            <input type="text" id="usernameToDelete" placeholder="Utilisateur..." style="padding:6px;border:1px solid #ccc;border-radius:4px;" />
+                            <button class="btn btn-outline" onclick="deleteUserHistory(null, this)">🗑 Supprimer utilisateur</button>
+                        </div>
                     </div>
                     <div class="table-wrap">
                         <table>
@@ -291,6 +301,7 @@
                                     <th>Format</th>
                                     <th>Statut</th>
                                     <th>Télécharger MT101</th>
+                                    <th th:if="${isAdmin}">Actions</th>
                                 </tr>
                             </thead>
                             <tbody>
@@ -303,9 +314,12 @@
                                         <a class="btn btn-outline" th:if="${h.mtContent != null and h.status=='SUCCESS'}" th:href="@{/api/conversion/history/{id}/download(id=${h.id})}" target="_blank">Télécharger</a>
                                         <span th:if="${h.mtContent == null or h.status!='SUCCESS'}" class="muted">Indisponible</span>
                                     </td>
+                                    <td th:if="${isAdmin}">
+                                        <button class="btn btn-outline" style="color:#b91c1c;border-color:#b91c1c" th:attr="data-id=${h.id}" onclick="deleteEntry(this.getAttribute('data-id'), this)">🗑</button>
+                                    </td>
                                 </tr>
                                 <tr th:if="${#lists.isEmpty(otherUsersHistory)}">
-                                    <td colspan="5" style="padding:18px;text-align:center;font-style:italic;">Aucune conversion d'autres utilisateurs</td>
+                                    <td colspan="6" style="padding:18px;text-align:center;font-style:italic;">Aucune conversion d'autres utilisateurs</td>
                                 </tr>
                             </tbody>
                         </table>
@@ -713,6 +727,94 @@ document.addEventListener('DOMContentLoaded', function() {
     renderCalendarWidget();
     loadStatsForDate(toISODateStr(now));
 });
+function pushMessage(type, text){
+  const box = document.getElementById('admin-messages');
+  if(!box) return;
+  const id = 'msg_'+Date.now();
+  const colors = {success:'#16a34a', error:'#dc2626', info:'#2563eb', warn:'#d97706'};
+  const el = document.createElement('div');
+  el.id = id;
+  el.style.cssText = 'background:#fff;box-shadow:0 4px 12px rgba(0,0,0,.12);border-left:5px solid '+(colors[type]||'#2563eb')+';padding:10px 12px;font:14px system-ui;border-radius:6px;display:flex;justify-content:space-between;gap:12px;align-items:flex-start;';
+  el.innerHTML = `<span style="line-height:1.4">${text}</span><button aria-label="Fermer" style="background:none;border:0;color:#6b7280;cursor:pointer;font-size:16px;padding:0 4px;" onclick="this.parentElement.remove()">×</button>`;
+  box.appendChild(el);
+  setTimeout(()=>{ el.style.transition='opacity .4s'; el.style.opacity='0'; setTimeout(()=>el.remove(),400); }, 4500);
+}
+
+function prepareConfirm(btn, originalLabel){
+  btn.dataset.state = 'confirm';
+  btn.textContent = 'Confirmer ?';
+  btn.classList.add('warn');
+  btn.style.backgroundColor = '#fcd34d';
+  btn.style.color = '#000';
+  if(btn._revertTimer) clearTimeout(btn._revertTimer);
+  btn._revertTimer = setTimeout(()=>{
+      btn.dataset.state='';
+      btn.textContent = originalLabel;
+      btn.classList.remove('warn');
+      btn.style.backgroundColor='';
+      btn.style.color='';
+  }, 4000);
+}
+
+function finalizeButton(btn, label){
+  if(btn){
+    btn.dataset.state='';
+    btn.textContent=label;
+    btn.classList.remove('warn');
+    btn.style.backgroundColor='';
+    btn.style.color='';
+  }
+}
+
+function deleteOwnHistory(btn){
+  const button = btn || document.querySelector('button[onclick^="deleteOwnHistory"]');
+  if(!button) return;
+  const originalLabel = '🗑 Supprimer mon historique';
+  if(button.dataset.state !== 'confirm'){
+     prepareConfirm(button, originalLabel);
+     pushMessage('info','Cliquez à nouveau pour confirmer la suppression de votre historique.');
+     return;
+  }
+  button.disabled = true; button.textContent='Suppression...';
+  fetch('/api/admin/history/self', { method:'DELETE' })
+    .then(r=>{ if(!r.ok) throw new Error('HTTP '+r.status); return r.text(); })
+    .then(msg=>{ pushMessage('success', msg); finalizeButton(button, originalLabel); button.disabled=false; setTimeout(()=>location.reload(),800); })
+    .catch(e=>{ pushMessage('error','Échec suppression: '+e.message); finalizeButton(button, originalLabel); button.disabled=false; });
+}
+
+function deleteUserHistory(username, btn){
+  const input = document.getElementById('usernameToDelete');
+  const user = username || (input ? input.value.trim(): '');
+  const button = btn || (username? null : document.querySelector('button[onclick="deleteUserHistory()"]'));
+  if(!user){ pushMessage('warn','Veuillez saisir un nom utilisateur.'); return; }
+  if(button && button.dataset.state !== 'confirm'){
+     prepareConfirm(button, '🗑 Supprimer utilisateur');
+     pushMessage('info','Re-cliquez pour confirmer suppression de '+user+'.');
+     button.dataset.pendingUser=user;
+     return;
+  }
+  const targetUser = (button && button.dataset.pendingUser) ? button.dataset.pendingUser : user;
+  if(button){ button.disabled=true; button.textContent='Suppression...'; }
+  fetch('/api/admin/history/user/' + encodeURIComponent(targetUser), { method:'DELETE' })
+    .then(r=>{ if(!r.ok) throw new Error('HTTP '+r.status); return r.text(); })
+    .then(msg=>{ pushMessage('success', msg); if(button){ finalizeButton(button,'🗑 Supprimer utilisateur'); button.disabled=false; button.dataset.pendingUser=''; } setTimeout(()=>location.reload(),900); })
+    .catch(e=>{ pushMessage('error','Échec suppression: '+e.message); if(button){ finalizeButton(button,'🗑 Supprimer utilisateur'); button.disabled=false; } });
+}
+
+function deleteEntry(id, btn){
+  if(!id){ pushMessage('error','Id manquant'); return; }
+  const button = btn;
+  if(button && button.dataset.state !== 'confirm'){
+     prepareConfirm(button,'🗑');
+     pushMessage('info','Re-cliquez pour confirmer la suppression de cette entrée.');
+     return;
+  }
+  if(button){ button.disabled=true; button.textContent='…'; }
+  fetch('/api/admin/history/entry/' + encodeURIComponent(id), { method:'DELETE' })
+    .then(r=>{ if(!r.ok) throw new Error('HTTP '+r.status); return r.text(); })
+    .then(msg=>{ pushMessage('success', msg); setTimeout(()=>location.reload(),700); })
+    .catch(e=>{ pushMessage('error','Suppression impossible: '+e.message); if(button){ finalizeButton(button,'🗑'); button.disabled=false; }});
+}
 </script>
 </body>
 </html>

@@ -25,4 +25,10 @@ public interface ConversionHistoryRepository extends MongoRepository<ConversionH
     List<ConversionHistory> findByOwnerUsernameAndConversionDateBetween(String ownerUsername, LocalDateTime start, LocalDateTime end);
 
     List<ConversionHistory> findByOwnerUsernameNotOrderByConversionDateDesc(String ownerUsername);
+
+    long deleteByOwnerUsername(String ownerUsername);
+
+    long deleteByOwnerUsernameIsNull();
+
+    List<ConversionHistory> findByOwnerUsernameIsNull();
 }

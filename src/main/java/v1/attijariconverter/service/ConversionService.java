@@ -444,4 +444,38 @@ public class ConversionService {
             return new ArrayList<>();
         }
     }
+
+    public long deleteHistoryForUser(String username){
+        try {
+            if(username == null) {
+                return conversionHistoryRepository.deleteByOwnerUsernameIsNull();
+            }
+            String trimmed = username.trim();
+            if(trimmed.isEmpty() || "_ANONYMOUS_".equalsIgnoreCase(trimmed) || "anonymous".equalsIgnoreCase(trimmed) || "null".equalsIgnoreCase(trimmed)) {
+                long c1 = conversionHistoryRepository.deleteByOwnerUsernameIsNull();
+                long c2 = conversionHistoryRepository.deleteByOwnerUsername("");
+                return c1 + c2;
+            }
+            return conversionHistoryRepository.deleteByOwnerUsername(trimmed);
+        } catch(Exception e){
+            logger.error("Erreur suppression historique utilisateur {}", username, e);
+            return 0;
+        }
+    }
+
+    public long deleteOwnHistory(){
+        return deleteHistoryForUser(currentUsername());
+    }
+
+    public boolean deleteHistoryEntry(String id){
+        try {
+            if(id == null || id.isBlank()) return false;
+            if(!conversionHistoryRepository.existsById(id)) return false;
+            conversionHistoryRepository.deleteById(id);
+            return true;
+        } catch(Exception e){
+            logger.error("Erreur suppression entrée {}", id, e);
+            return false;
+        }
+    }
 }
