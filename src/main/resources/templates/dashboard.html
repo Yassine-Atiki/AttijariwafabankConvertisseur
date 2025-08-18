@@ -223,7 +223,7 @@
                                 </tr>
                             </thead>
                             <tbody>
-                                <tr th:each="history : ${conversionHistory}">
+                                <tr th:each="history : ${conversionHistoryPaginated}">
                                     <td th:text="${#temporals.format(history.conversionDate, 'dd/MM/yyyy HH:mm')}">-</td>
                                     <td th:text="${history.inputFormat + ' → ' + history.outputFormat}">-</td>
                                     <td>
@@ -234,11 +234,73 @@
                                         <span th:if="${history.mtContent == null or (history.status != 'SUCCESS' and history.status != 'VALID')}" class="muted">Indisponible</span>
                                     </td>
                                 </tr>
-                                <tr th:if="${#lists.isEmpty(conversionHistory)}">
+                                <tr th:if="${#lists.isEmpty(conversionHistoryPaginated)}">
                                     <td colspan="4" style="padding: 20px; text-align: center; font-style: italic;">Aucun historique disponible</td>
                                 </tr>
                             </tbody>
                         </table>
+                    </div>
+
+                    <!-- Pagination pour l'historique personnel -->
+                    <div th:if="${totalHistoryPages > 1}" class="pagination-wrapper" style="display: flex; justify-content: center; align-items: center; gap: 10px; margin-top: 20px;">
+                        <button th:if="${hasPrevHistory}"
+                                class="btn btn-outline"
+                                th:onclick="'navigateToHistoryPage(' + ${currentHistoryPage - 1} + ')'"
+                                style="padding: 8px 12px;">
+                            ← Précédent
+                        </button>
+
+                        <!-- Numéros de pages cliquables -->
+                        <div class="page-numbers" style="display: flex; gap: 5px; align-items: center;">
+                            <!-- Première page si pas visible -->
+                            <button th:if="${currentHistoryPage > 2}"
+                                    class="btn btn-outline"
+                                    th:onclick="'navigateToHistoryPage(0)'"
+                                    style="padding: 6px 10px; font-size: 14px;">
+                                1
+                            </button>
+
+                            <!-- Points de suspension -->
+                            <span th:if="${currentHistoryPage > 3}" style="color: #666; padding: 0 5px;">...</span>
+
+                            <!-- Pages autour de la page actuelle -->
+                            <th:block th:each="pageNum : ${#numbers.sequence(T(java.lang.Math).max(0, currentHistoryPage - 2), T(java.lang.Math).min(totalHistoryPages - 1, currentHistoryPage + 2))}">
+                                <button th:if="${pageNum == currentHistoryPage}"
+                                        class="btn btn-primary"
+                                        style="padding: 6px 10px; font-size: 14px; cursor: default;"
+                                        disabled>
+                                    <span th:text="${pageNum + 1}">1</span>
+                                </button>
+                                <button th:if="${pageNum != currentHistoryPage}"
+                                        class="btn btn-outline"
+                                        th:onclick="'navigateToHistoryPage(' + ${pageNum} + ')'"
+                                        style="padding: 6px 10px; font-size: 14px;">
+                                    <span th:text="${pageNum + 1}">1</span>
+                                </button>
+                            </th:block>
+
+                            <!-- Points de suspension -->
+                            <span th:if="${currentHistoryPage < totalHistoryPages - 4}" style="color: #666; padding: 0 5px;">...</span>
+
+                            <!-- Dernière page si pas visible -->
+                            <button th:if="${currentHistoryPage < totalHistoryPages - 3}"
+                                    class="btn btn-outline"
+                                    th:onclick="'navigateToHistoryPage(' + ${totalHistoryPages - 1} + ')'"
+                                    style="padding: 6px 10px; font-size: 14px;">
+                                <span th:text="${totalHistoryPages}">1</span>
+                            </button>
+                        </div>
+
+                        <span style="font-size: 14px; color: #666; margin: 0 10px;">
+                            (<span th:text="${totalHistoryElements}">0</span> éléments)
+                        </span>
+
+                        <button th:if="${hasNextHistory}"
+                                class="btn btn-outline"
+                                th:onclick="'navigateToHistoryPage(' + ${currentHistoryPage + 1} + ')'"
+                                style="padding: 8px 12px;">
+                            Suivant →
+                        </button>
                     </div>
                 </div>
             </div>
@@ -323,6 +385,68 @@
                                 </tr>
                             </tbody>
                         </table>
+                    </div>
+
+                    <!-- Pagination pour les autres utilisateurs -->
+                    <div th:if="${totalOtherUsersPages > 1}" class="pagination-wrapper" style="display: flex; justify-content: center; align-items: center; gap: 10px; margin-top: 20px;">
+                        <button th:if="${hasPrevOtherUsers}"
+                                class="btn btn-outline"
+                                th:onclick="'navigateToOtherUsersPage(' + ${currentOtherUsersPage - 1} + ')'"
+                                style="padding: 8px 12px;">
+                            ← Précédent
+                        </button>
+
+                        <!-- Numéros de pages cliquables -->
+                        <div class="page-numbers" style="display: flex; gap: 5px; align-items: center;">
+                            <!-- Première page si pas visible -->
+                            <button th:if="${currentOtherUsersPage > 2}"
+                                    class="btn btn-outline"
+                                    th:onclick="'navigateToOtherUsersPage(0)'"
+                                    style="padding: 6px 10px; font-size: 14px;">
+                                1
+                            </button>
+
+                            <!-- Points de suspension -->
+                            <span th:if="${currentOtherUsersPage > 3}" style="color: #666; padding: 0 5px;">...</span>
+
+                            <!-- Pages autour de la page actuelle -->
+                            <th:block th:each="pageNum : ${#numbers.sequence(T(java.lang.Math).max(0, currentOtherUsersPage - 2), T(java.lang.Math).min(totalOtherUsersPages - 1, currentOtherUsersPage + 2))}">
+                                <button th:if="${pageNum == currentOtherUsersPage}"
+                                        class="btn btn-primary"
+                                        style="padding: 6px 10px; font-size: 14px; cursor: default;"
+                                        disabled>
+                                    <span th:text="${pageNum + 1}">1</span>
+                                </button>
+                                <button th:if="${pageNum != currentOtherUsersPage}"
+                                        class="btn btn-outline"
+                                        th:onclick="'navigateToOtherUsersPage(' + ${pageNum} + ')'"
+                                        style="padding: 6px 10px; font-size: 14px;">
+                                    <span th:text="${pageNum + 1}">1</span>
+                                </button>
+                            </th:block>
+
+                            <!-- Points de suspension -->
+                            <span th:if="${currentOtherUsersPage < totalOtherUsersPages - 4}" style="color: #666; padding: 0 5px;">...</span>
+
+                            <!-- Dernière page si pas visible -->
+                            <button th:if="${currentOtherUsersPage < totalOtherUsersPages - 3}"
+                                    class="btn btn-outline"
+                                    th:onclick="'navigateToOtherUsersPage(' + ${totalOtherUsersPages - 1} + ')'"
+                                    style="padding: 6px 10px; font-size: 14px;">
+                                <span th:text="${totalOtherUsersPages}">1</span>
+                            </button>
+                        </div>
+
+                        <span style="font-size: 14px; color: #666; margin: 0 10px;">
+                            (<span th:text="${totalOtherUsersElements}">0</span> éléments)
+                        </span>
+
+                        <button th:if="${hasNextOtherUsers}"
+                                class="btn btn-outline"
+                                th:onclick="'navigateToOtherUsersPage(' + ${currentOtherUsersPage + 1} + ')'"
+                                style="padding: 8px 12px;">
+                            Suivant →
+                        </button>
                     </div>
                 </div>
             </div>
@@ -835,6 +959,19 @@ function deleteEntry(id, btn){
     .then(r=>{ if(!r.ok) throw new Error('HTTP '+r.status); return r.text(); })
     .then(msg=>{ pushMessage('success', msg); setTimeout(()=>location.reload(),700); })
     .catch(e=>{ pushMessage('error','Suppression impossible: '+e.message); if(button){ finalizeButton(button,'🗑'); button.disabled=false; }});
+}
+
+// Fonctions de navigation pour la pagination
+function navigateToHistoryPage(pageNumber) {
+    const currentParams = new URLSearchParams(window.location.search);
+    currentParams.set('historyPage', pageNumber);
+    window.location.href = '?' + currentParams.toString();
+}
+
+function navigateToOtherUsersPage(pageNumber) {
+    const currentParams = new URLSearchParams(window.location.search);
+    currentParams.set('otherUsersPage', pageNumber);
+    window.location.href = '?' + currentParams.toString();
 }
 </script>
 </body>

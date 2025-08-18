@@ -18,6 +18,10 @@ import java.util.regex.Pattern;
 import org.springframework.security.core.Authentication;
 import org.springframework.security.core.GrantedAuthority;
 import org.springframework.security.core.context.SecurityContextHolder;
+import org.springframework.data.domain.Page;
+import org.springframework.data.domain.PageRequest;
+import org.springframework.data.domain.Pageable;
+import org.springframework.data.domain.Sort;
 
 @Service
 public class ConversionService {
@@ -476,6 +480,57 @@ public class ConversionService {
         } catch(Exception e){
             logger.error("Erreur suppression entrée {}", id, e);
             return false;
+        }
+    }
+
+    // Méthodes de pagination ajoutées
+    public Page<ConversionHistory> getConversionHistoryPaginated(int page, int size) {
+        try {
+            String username = currentUsername();
+            Pageable pageable = PageRequest.of(page, size, Sort.by("conversionDate").descending());
+            return conversionHistoryRepository.findByOwnerUsername(username, pageable);
+        } catch (Exception e) {
+            logger.error("Erreur lors de la récupération de l'historique paginé", e);
+            return Page.empty();
+        }
+    }
+
+    public Page<ConversionHistory> getOtherUsersHistoryPaginated(int page, int size) {
+        try {
+            String currentUser = currentUsername();
+            Pageable pageable = PageRequest.of(page, size, Sort.by("conversionDate").descending());
+            return conversionHistoryRepository.findByOwnerUsernameNot(currentUser, pageable);
+        } catch (Exception e) {
+            logger.error("Erreur lors de la récupération de l'historique des autres utilisateurs", e);
+            return Page.empty();
+        }
+    }
+
+    // Méthodes statistiques pour admin
+    public long getTotalActiveUsers() {
+        try {
+            return conversionHistoryRepository.countDistinctOwnerUsername();
+        } catch (Exception e) {
+            logger.error("Erreur lors du comptage des utilisateurs actifs", e);
+            return 0;
+        }
+    }
+
+    public long getTotalUsersWithSuccess() {
+        try {
+            return conversionHistoryRepository.countDistinctOwnerUsernameByStatus("SUCCESS");
+        } catch (Exception e) {
+            logger.error("Erreur lors du comptage des utilisateurs avec succès", e);
+            return 0;
+        }
+    }
+
+    public long getTotalUsersWithErrors() {
+        try {
+            return conversionHistoryRepository.countDistinctOwnerUsernameByStatus("ERROR");
+        } catch (Exception e) {
+            logger.error("Erreur lors du comptage des utilisateurs avec erreurs", e);
+            return 0;
         }
     }
 }
