@@ -64,6 +64,9 @@ public class DashboardController {
                 model.addAttribute("totalActiveUsers", conversionService.getTotalActiveUsers());
                 model.addAttribute("totalUsersWithSuccess", conversionService.getTotalUsersWithSuccess());
                 model.addAttribute("totalUsersWithErrors", conversionService.getTotalUsersWithErrors());
+
+                // Liste des utilisateurs pour sélection dans l'accueil
+                model.addAttribute("allUsers", conversionService.getAllUsers());
             }
         }
     }

@@ -11,9 +11,12 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 import java.time.LocalDateTime;
+import java.time.LocalDate;
 import java.time.format.DateTimeFormatter;
 import java.util.ArrayList;
+import java.util.HashMap;
 import java.util.List;
+import java.util.Map;
 import java.util.regex.Pattern;
 import org.springframework.security.core.Authentication;
 import org.springframework.security.core.GrantedAuthority;
@@ -531,6 +534,73 @@ public class ConversionService {
         } catch (Exception e) {
             logger.error("Erreur lors du comptage des utilisateurs avec erreurs", e);
             return 0;
+        }
+    }
+
+    // Nouvelles méthodes pour les statistiques par utilisateur
+    public List<String> getAllUsers() {
+        try {
+            return conversionHistoryRepository.findAllWithUsernameOnly()
+                    .stream()
+                    .map(ConversionHistory::getOwnerUsername)
+                    .distinct()
+                    .filter(username -> username != null && !username.trim().isEmpty())
+                    .collect(java.util.stream.Collectors.toList());
+        } catch (Exception e) {
+            logger.error("Erreur lors de la récupération des utilisateurs", e);
+            return new ArrayList<>();
+        }
+    }
+
+    public Map<String, Object> getUserStatistics(String username) {
+        try {
+            Map<String, Object> stats = new HashMap<>();
+
+            long totalConversions = conversionHistoryRepository.countByOwnerUsername(username);
+            long successfulConversions = conversionHistoryRepository.countByOwnerUsernameAndStatus(username, "SUCCESS");
+            long failedConversions = conversionHistoryRepository.countByOwnerUsernameAndStatus(username, "ERROR");
+
+            stats.put("username", username);
+            stats.put("totalConversions", totalConversions);
+            stats.put("successfulConversions", successfulConversions);
+            stats.put("failedConversions", failedConversions);
+            stats.put("successRate", totalConversions > 0 ? (double)successfulConversions / totalConversions * 100 : 0.0);
+
+            // Récupérer les dernières conversions
+            List<ConversionHistory> recentConversions = conversionHistoryRepository.findTop5ByOwnerUsernameOrderByConversionDateDesc(username);
+            stats.put("recentConversions", recentConversions);
+
+            return stats;
+        } catch (Exception e) {
+            logger.error("Erreur lors de la récupération des statistiques utilisateur pour {}", username, e);
+            return new HashMap<>();
+        }
+    }
+
+    public Map<String, Object> getUserStatsByDate(String username, String date) {
+        try {
+            LocalDateTime startOfDay = LocalDate.parse(date).atStartOfDay();
+            LocalDateTime endOfDay = startOfDay.plusDays(1);
+
+            Map<String, Object> stats = new HashMap<>();
+            long totalDay = conversionHistoryRepository.countByOwnerUsernameAndConversionDateBetween(username, startOfDay, endOfDay);
+            long successDay = conversionHistoryRepository.countByOwnerUsernameAndStatusAndConversionDateBetween(username, "SUCCESS", startOfDay, endOfDay);
+            long errorDay = conversionHistoryRepository.countByOwnerUsernameAndStatusAndConversionDateBetween(username, "ERROR", startOfDay, endOfDay);
+
+            stats.put("total", totalDay);
+            stats.put("valid", successDay);
+            stats.put("error", errorDay);
+            stats.put("date", date);
+            stats.put("username", username);
+
+            return stats;
+        } catch (Exception e) {
+            logger.error("Erreur lors de la récupération des statistiques utilisateur par date", e);
+            Map<String, Object> emptyStats = new HashMap<>();
+            emptyStats.put("total", 0);
+            emptyStats.put("valid", 0);
+            emptyStats.put("error", 0);
+            return emptyStats;
         }
     }
 }

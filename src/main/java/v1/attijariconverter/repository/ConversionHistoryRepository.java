@@ -46,4 +46,18 @@ public interface ConversionHistoryRepository extends MongoRepository<ConversionH
 
     @Query(value = "{'status': ?0}", count = true)
     long countDistinctOwnerUsernameByStatus(String status);
+
+    // Nouvelles méthodes pour les statistiques par utilisateur
+    @Query(value = "{}", fields = "{ 'ownerUsername' : 1, '_id' : 0 }")
+    List<ConversionHistory> findAllWithUsernameOnly();
+
+    long countByOwnerUsername(String ownerUsername);
+
+    long countByOwnerUsernameAndStatus(String ownerUsername, String status);
+
+    List<ConversionHistory> findTop5ByOwnerUsernameOrderByConversionDateDesc(String ownerUsername);
+
+    long countByOwnerUsernameAndConversionDateBetween(String ownerUsername, LocalDateTime start, LocalDateTime end);
+
+    long countByOwnerUsernameAndStatusAndConversionDateBetween(String ownerUsername, String status, LocalDateTime start, LocalDateTime end);
 }

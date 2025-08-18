@@ -80,6 +80,74 @@
                         </div>
                     </div>
 
+                    <!-- Section sélection utilisateur pour admin -->
+                    <div th:if="${isAdmin}" class="panel" style="margin-bottom: 20px;">
+                        <div class="panel-header">
+                            <h2>Sélection utilisateur (Admin)</h2>
+                        </div>
+                        <div style="display: flex; gap: 15px; align-items: center; padding: 15px;">
+                            <label for="userSelector" style="font-weight: 500;">Voir les statistiques de :</label>
+                            <select id="userSelector" class="form-select" onchange="loadUserStats(this.value)" style="padding: 8px 12px; border: 1px solid #ccc; border-radius: 6px; min-width: 200px;">
+                                <option value="">-- Sélectionner un utilisateur --</option>
+                                <option value="global">Vue globale (tous utilisateurs)</option>
+                                <option th:each="user : ${allUsers}" th:value="${user}" th:text="${user}">Utilisateur</option>
+                            </select>
+                            <button class="btn btn-outline" onclick="refreshUserStats()" style="padding: 8px 12px;">🔄 Actualiser</button>
+                        </div>
+
+                        <!-- Zone d'affichage des statistiques utilisateur -->
+                        <div id="userStatsDisplay" style="display: none; padding: 15px; background: #f8f9fa; border-radius: 8px; margin-top: 15px;">
+                            <div class="user-stats-header" style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 15px;">
+                                <h3 id="selectedUserTitle" style="margin: 0; color: #333;">Statistiques utilisateur</h3>
+                                <div class="user-stats-badges" id="userStatsBadges"></div>
+                            </div>
+
+                            <!-- Métriques utilisateur -->
+                            <div class="user-metrics" style="display: grid; grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)); gap: 15px; margin-bottom: 20px;">
+                                <div class="metric-card user-metric">
+                                    <div class="ring total" style="--v:.50"><div class="center">Σ</div></div>
+                                    <div>
+                                        <div class="metric-title">Total Conversions</div>
+                                        <div class="metric-value" id="userTotalCount">0</div>
+                                    </div>
+                                </div>
+                                <div class="metric-card user-metric">
+                                    <div class="ring success" style="--v:.70"><div class="center">✓</div></div>
+                                    <div>
+                                        <div class="metric-title">Conversions Réussies</div>
+                                        <div class="metric-value" id="userValidCount">0</div>
+                                    </div>
+                                </div>
+                                <div class="metric-card user-metric">
+                                    <div class="ring error" style="--v:.20"><div class="center">!</div></div>
+                                    <div>
+                                        <div class="metric-title">Conversions Échouées</div>
+                                        <div class="metric-value" id="userErrorCount">0</div>
+                                    </div>
+                                </div>
+                                <div class="metric-card user-metric">
+                                    <div class="ring success" style="--v:.80"><div class="center">%</div></div>
+                                    <div>
+                                        <div class="metric-title">Taux de Réussite</div>
+                                        <div class="metric-value" id="userSuccessRate">0%</div>
+                                    </div>
+                                </div>
+                            </div>
+
+                            <!-- Graphique utilisateur -->
+                            <div class="user-chart-container chart" style="background: white; padding: 20px; border-radius: 8px; box-shadow: 0 1px 3px rgba(0,0,0,0.1);">
+                                <h4 style="margin: 0 0 15px 0; color: #555;">Graphique des conversions</h4>
+                                <svg id="userChart" viewBox="0 0 420 240" preserveAspectRatio="xMidYMid meet" role="img" aria-label="Graphique utilisateur"></svg>
+                            </div>
+
+                            <!-- Dernières conversions -->
+                            <div class="user-recent-conversions" style="margin-top: 20px;">
+                                <h4 style="color: #555; margin-bottom: 10px;">Dernières conversions</h4>
+                                <div id="userRecentList" style="max-height: 200px; overflow-y: auto;"></div>
+                            </div>
+                        </div>
+                    </div>
+
                     <div class="metrics">
                         <div class="metric-cards">
                             <div class="metric-card">
@@ -220,6 +288,7 @@
                                     <th>Format</th>
                                     <th>Statut</th>
                                     <th>Télécharger MT101</th>
+                                    <th th:if="${isAdmin}">Actions</th>
                                 </tr>
                             </thead>
                             <tbody>
@@ -233,9 +302,20 @@
                                         <a class="btn btn-outline" th:if="${history.mtContent != null and (history.status == 'SUCCESS' or history.status == 'VALID')}" th:href="@{/api/conversion/history/{id}/download(id=${history.id})}" target="_blank">Télécharger</a>
                                         <span th:if="${history.mtContent == null or (history.status != 'SUCCESS' and history.status != 'VALID')}" class="muted">Indisponible</span>
                                     </td>
+                                    <td th:if="${isAdmin}">
+                                        <div style="display: flex; gap: 4px; align-items: center;">
+                                            <button class="btn btn-outline"
+                                                    style="color:#b91c1c; border-color:#b91c1c; padding: 4px 8px; font-size: 12px;"
+                                                    th:attr="data-id=${history.id}"
+                                                    onclick="deleteEntry(this.getAttribute('data-id'), this)"
+                                                    title="Supprimer cette entrée">
+                                                🗑
+                                            </button>
+                                        </div>
+                                    </td>
                                 </tr>
                                 <tr th:if="${#lists.isEmpty(conversionHistoryPaginated)}">
-                                    <td colspan="4" style="padding: 20px; text-align: center; font-style: italic;">Aucun historique disponible</td>
+                                    <td th:colspan="${isAdmin ? 5 : 4}" style="padding: 20px; text-align: center; font-style: italic;">Aucun historique disponible</td>
                                 </tr>
                             </tbody>
                         </table>
@@ -973,6 +1053,316 @@ function navigateToOtherUsersPage(pageNumber) {
     currentParams.set('otherUsersPage', pageNumber);
     window.location.href = '?' + currentParams.toString();
 }
+
+// ========== NOUVELLES FONCTIONS POUR STATISTIQUES UTILISATEUR ==========
+
+let currentSelectedUser = null;
+let userStatsDate = null;
+
+// Charger les statistiques d'un utilisateur
+async function loadUserStats(username) {
+    const userStatsDisplay = document.getElementById('userStatsDisplay');
+    const selectedUserTitle = document.getElementById('selectedUserTitle');
+
+    if (!username) {
+        userStatsDisplay.style.display = 'none';
+        currentSelectedUser = null;
+        return;
+    }
+
+    currentSelectedUser = username;
+    userStatsDisplay.style.display = 'block';
+
+    if (username === 'global') {
+        selectedUserTitle.textContent = '📊 Statistiques globales (tous utilisateurs)';
+        loadGlobalStats();
+        return;
+    }
+
+    selectedUserTitle.textContent = `👤 Statistiques de ${username}`;
+
+    try {
+        // Charger les statistiques générales de l'utilisateur
+        const response = await fetch(`/api/admin/users/${encodeURIComponent(username)}/stats`);
+        if (!response.ok) throw new Error(`HTTP ${response.status}`);
+
+        const stats = await response.json();
+
+        // Mettre à jour les métriques
+        updateUserMetrics(stats);
+
+        // Dessiner le graphique utilisateur
+        renderUserChart(stats);
+
+        // Afficher les dernières conversions
+        displayUserRecentConversions(stats.recentConversions || []);
+
+        // Créer les badges de statut
+        updateUserBadges(stats);
+
+        // Si une date est sélectionnée dans le calendrier, charger les stats de cette date
+        if (userStatsDate) {
+            loadUserStatsByDate(username, userStatsDate);
+        }
+
+    } catch (error) {
+        console.error('Erreur lors du chargement des statistiques utilisateur:', error);
+        selectedUserTitle.textContent = '❌ Erreur lors du chargement';
+        updateUserMetrics({ totalConversions: 0, successfulConversions: 0, failedConversions: 0, successRate: 0 });
+    }
+}
+
+// Charger les statistiques globales
+function loadGlobalStats() {
+    const totalEl = document.getElementById('totalCount');
+    const validEl = document.getElementById('validCount');
+    const invalidEl = document.getElementById('invalidCount');
+
+    const total = parseInt(totalEl?.textContent || '0');
+    const valid = parseInt(validEl?.textContent || '0');
+    const invalid = parseInt(invalidEl?.textContent || '0');
+
+    const globalStats = {
+        username: 'global',
+        totalConversions: total,
+        successfulConversions: valid,
+        failedConversions: invalid,
+        successRate: total > 0 ? (valid / total * 100) : 0,
+        recentConversions: []
+    };
+
+    updateUserMetrics(globalStats);
+    renderUserChart(globalStats);
+    displayUserRecentConversions([]);
+    updateUserBadges(globalStats);
+}
+
+// Mettre à jour les métriques utilisateur
+function updateUserMetrics(stats) {
+    document.getElementById('userTotalCount').textContent = stats.totalConversions || 0;
+    document.getElementById('userValidCount').textContent = stats.successfulConversions || 0;
+    document.getElementById('userErrorCount').textContent = stats.failedConversions || 0;
+    document.getElementById('userSuccessRate').textContent = Math.round(stats.successRate || 0) + '%';
+
+    // Mettre à jour les anneaux de progression
+    updateUserProgressRings(stats);
+}
+
+// Mettre à jour les anneaux de progression
+function updateUserProgressRings(stats) {
+    const total = stats.totalConversions || 0;
+    const valid = stats.successfulConversions || 0;
+    const error = stats.failedConversions || 0;
+
+    // Calculer les pourcentages pour les anneaux
+    const maxValue = Math.max(total, 100); // Au moins 100 pour avoir une base
+    const totalPercent = total / maxValue;
+    const validPercent = valid / maxValue;
+    const errorPercent = error / maxValue;
+    const successRatePercent = (stats.successRate || 0) / 100;
+
+    // Mettre à jour les variables CSS
+    document.querySelector('.user-metric .ring.total').style.setProperty('--v', totalPercent);
+    document.querySelector('.user-metric .ring.success').style.setProperty('--v', validPercent);
+    document.querySelector('.user-metric .ring.error').style.setProperty('--v', errorPercent);
+    document.querySelectorAll('.user-metric .ring.success')[1]?.style.setProperty('--v', successRatePercent);
+}
+
+// Dessiner le graphique utilisateur
+function renderUserChart(stats) {
+    const svg = document.getElementById('userChart');
+    if (!svg) return;
+
+    const width = 420; const height = 240; const pad = {l:48, r:16, t:16, b:40};
+    const chartW = width - pad.l - pad.r; const chartH = height - pad.t - pad.b;
+
+    const data = [
+        { label: 'Total', value: stats.totalConversions || 0, color: '#f08a00' },
+        { label: 'Réussies', value: stats.successfulConversions || 0, color: '#16a34a' },
+        { label: 'Échouées', value: stats.failedConversions || 0, color: '#e03c31' }
+    ];
+
+    const max = Math.max(1, ...data.map(d => d.value));
+    const barW = Math.min(80, Math.floor(chartW / (data.length * 2)));
+    const gap = Math.floor((chartW - data.length * barW) / (data.length + 1));
+
+    // Reset
+    svg.innerHTML = '';
+
+    // Axes (Y grid)
+    const steps = 4;
+    for (let i=0; i<=steps; i++) {
+        const y = pad.t + chartH - (i/steps) * chartH;
+        const line = document.createElementNS('http://www.w3.org/2000/svg', 'line');
+        line.setAttribute('x1', pad.l);
+        line.setAttribute('x2', pad.l + chartW);
+        line.setAttribute('y1', y);
+        line.setAttribute('y2', y);
+        line.setAttribute('stroke', '#e5e7eb');
+        line.setAttribute('stroke-width', '1');
+        svg.appendChild(line);
+
+        const label = document.createElementNS('http://www.w3.org/2000/svg', 'text');
+        label.setAttribute('x', pad.l - 6);
+        label.setAttribute('y', y + 4);
+        label.setAttribute('text-anchor', 'end');
+        label.setAttribute('font-size', '11');
+        label.setAttribute('fill', '#6b7280');
+        label.textContent = Math.round((i/steps) * max);
+        svg.appendChild(label);
+    }
+
+    // Bars + labels
+    data.forEach((d, idx) => {
+        const x = pad.l + gap + idx * (barW + gap);
+        const h = d.value === 0 ? 0 : Math.round((d.value / max) * chartH);
+        const y = pad.t + chartH - h;
+
+        const rect = document.createElementNS('http://www.w3.org/2000/svg', 'rect');
+        rect.setAttribute('x', x);
+        rect.setAttribute('y', y);
+        rect.setAttribute('width', barW);
+        rect.setAttribute('height', h);
+        rect.setAttribute('rx', 6);
+        rect.setAttribute('fill', d.color);
+        rect.setAttribute('opacity', '0.9');
+        svg.appendChild(rect);
+
+        // Value label
+        const val = document.createElementNS('http://www.w3.org/2000/svg', 'text');
+        val.setAttribute('x', x + barW/2);
+        val.setAttribute('y', y - 6);
+        val.setAttribute('text-anchor', 'middle');
+        val.setAttribute('font-size', '12');
+        val.setAttribute('fill', '#111827');
+        val.textContent = d.value;
+        svg.appendChild(val);
+
+        // Category label
+        const lab = document.createElementNS('http://www.w3.org/2000/svg', 'text');
+        lab.setAttribute('x', x + barW/2);
+        lab.setAttribute('y', pad.t + chartH + 18);
+        lab.setAttribute('text-anchor', 'middle');
+        lab.setAttribute('font-size', '12');
+        lab.setAttribute('fill', '#374151');
+        lab.textContent = d.label;
+        svg.appendChild(lab);
+    });
+}
+
+// Afficher les dernières conversions de l'utilisateur
+function displayUserRecentConversions(conversions) {
+    const container = document.getElementById('userRecentList');
+    if (!container) return;
+
+    if (!conversions || conversions.length === 0) {
+        container.innerHTML = '<div style="padding: 10px; text-align: center; color: #666; font-style: italic;">Aucune conversion récente</div>';
+        return;
+    }
+
+    const items = conversions.map(conv => {
+        const date = new Date(conv.conversionDate).toLocaleString('fr-FR');
+        const statusClass = conv.status === 'SUCCESS' ? 'ok' : 'warn';
+        const statusIcon = conv.status === 'SUCCESS' ? '✓' : '✕';
+
+        return `
+            <div style="display: flex; justify-content: space-between; align-items: center; padding: 8px 12px; background: white; border-radius: 6px; margin-bottom: 8px; box-shadow: 0 1px 2px rgba(0,0,0,0.05);">
+                <div>
+                    <div style="font-weight: 500; font-size: 14px;">${conv.inputFormat || 'pain.001'} → ${conv.outputFormat || 'MT101'}</div>
+                    <div style="font-size: 12px; color: #666;">${date}</div>
+                </div>
+                <span class="chip ${statusClass}" style="font-size: 12px;">${statusIcon} ${conv.status}</span>
+            </div>
+        `;
+    }).join('');
+
+    container.innerHTML = items;
+}
+
+// Mettre à jour les badges utilisateur
+function updateUserBadges(stats) {
+    const container = document.getElementById('userStatsBadges');
+    if (!container) return;
+
+    const successRate = stats.successRate || 0;
+    let badgeColor = '#dc2626'; // Rouge par défaut
+    let badgeText = 'Débutant';
+
+    if (successRate >= 95) {
+        badgeColor = '#059669';
+        badgeText = 'Expert';
+    } else if (successRate >= 80) {
+        badgeColor = '#0891b2';
+        badgeText = 'Avancé';
+    } else if (successRate >= 60) {
+        badgeColor = '#ea580c';
+        badgeText = 'Intermédiaire';
+    }
+
+    const totalBadge = stats.totalConversions >= 100 ?
+        '<span style="background: #7c3aed; color: white; padding: 4px 8px; border-radius: 12px; font-size: 12px; margin-left: 8px;">💯 Centurion</span>' : '';
+
+    container.innerHTML = `
+        <span style="background: ${badgeColor}; color: white; padding: 4px 8px; border-radius: 12px; font-size: 12px;">
+            ${badgeText} (${Math.round(successRate)}%)
+        </span>
+        ${totalBadge}
+    `;
+}
+
+// Charger les statistiques utilisateur par date
+async function loadUserStatsByDate(username, date) {
+    if (!username || username === 'global') return;
+
+    try {
+        const response = await fetch(`/api/admin/users/${encodeURIComponent(username)}/stats-by-date?date=${date}`);
+        if (!response.ok) throw new Error(`HTTP ${response.status}`);
+
+        const stats = await response.json();
+
+        // Mettre à jour temporairement les métriques avec les données du jour
+        const tempStats = {
+            username: username,
+            totalConversions: stats.total || 0,
+            successfulConversions: stats.valid || 0,
+            failedConversions: stats.error || 0,
+            successRate: stats.total > 0 ? (stats.valid / stats.total * 100) : 0,
+            recentConversions: []
+        };
+
+        updateUserMetrics(tempStats);
+        renderUserChart(tempStats);
+
+        // Afficher la date dans le titre
+        const selectedUserTitle = document.getElementById('selectedUserTitle');
+        selectedUserTitle.textContent = `👤 ${username} - ${date}`;
+
+    } catch (error) {
+        console.error('Erreur lors du chargement des statistiques par date:', error);
+    }
+}
+
+// Actualiser les statistiques utilisateur
+function refreshUserStats() {
+    if (currentSelectedUser) {
+        loadUserStats(currentSelectedUser);
+        pushMessage('info', 'Statistiques utilisateur actualisées');
+    } else {
+        pushMessage('warn', 'Aucun utilisateur sélectionné');
+    }
+}
+
+// Modifier la fonction de chargement des stats par date pour prendre en compte l'utilisateur sélectionné
+const originalLoadStatsForDate = loadStatsForDate;
+loadStatsForDate = async function(dateStr) {
+    userStatsDate = dateStr;
+    await originalLoadStatsForDate(dateStr);
+
+    // Si un utilisateur est sélectionné, charger aussi ses stats pour cette date
+    if (currentSelectedUser && currentSelectedUser !== 'global') {
+        await loadUserStatsByDate(currentSelectedUser, dateStr);
+    }
+};
 </script>
 </body>
 </html>
