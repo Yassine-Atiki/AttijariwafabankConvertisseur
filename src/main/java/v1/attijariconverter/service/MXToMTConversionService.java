@@ -141,8 +141,8 @@ public class MXToMTConversionService {
         mt101.append("-}\n");
 
         // Bloc 5: Trailer Block
-        int checksum = Math.abs(mt101.toString().hashCode()) % 1000000000;
-        mt101.append("{5:{CHK:").append(String.format("%09d", checksum)).append("ABC}}");
+//        int checksum = Math.abs(mt101.toString().hashCode()) % 1000000000;
+//        mt101.append("{5:{CHK:").append(String.format("%09d", checksum)).append("ABC}}");
 
         return mt101.toString();
     }

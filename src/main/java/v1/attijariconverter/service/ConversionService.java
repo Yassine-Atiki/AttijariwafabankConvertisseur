@@ -117,8 +117,8 @@ public class ConversionService {
         mt101.append(bloc4).append("\n");
 
         // Bloc 5: Trailer Block (obligatoire)
-        String bloc5 = generateBloc5(mt101.toString());
-        mt101.append(bloc5);
+       // String bloc5 = generateBloc5(mt101.toString());
+        //mt101.append(bloc5);
 
         return mt101.toString();
     }
@@ -255,11 +255,11 @@ public class ConversionService {
         }
     }
 
-    private String generateBloc5(String fullMessage) {
-        // Calculer un checksum simple
-        int checksum = Math.abs(fullMessage.hashCode()) % 1000000000;
-        return "{5:{CHK:" + String.format("%09d", checksum) + "ABC}}";
-    }
+//    private String generateBloc5(String fullMessage) {
+//        // Calculer un checksum simple
+//        int checksum = Math.abs(fullMessage.hashCode()) % 1000000000;
+//        return "{5:{CHK:" + String.format("%09d", checksum) + "ABC}}";
+//    }
 
     private boolean validateMT101Structure(String mt101Message, List<String> validationErrors) {
         boolean isValid = true;
@@ -267,7 +267,7 @@ public class ConversionService {
         if (!mt101Message.contains("{1:")) { validationErrors.add("Bloc 1 (Basic Header) manquant"); isValid = false; }
         if (!mt101Message.contains("{2:")) { validationErrors.add("Bloc 2 (Application Header) manquant"); isValid = false; }
         if (!mt101Message.contains("{4:")) { validationErrors.add("Bloc 4 (Text Block) manquant"); isValid = false; }
-        if (!mt101Message.contains("{5:")) { validationErrors.add("Bloc 5 (Trailer) manquant"); isValid = false; }
+       // if (!mt101Message.contains("{5:")) { validationErrors.add("Bloc 5 (Trailer) manquant"); isValid = false; }
 
         if (!mt101Message.contains(":20:")) { validationErrors.add("Champ :20: (Transaction Reference) manquant"); isValid = false; }
         if (!mt101Message.contains(":28D:")) { validationErrors.add("Champ :28D: (Message Index/Total) manquant"); isValid = false; }
