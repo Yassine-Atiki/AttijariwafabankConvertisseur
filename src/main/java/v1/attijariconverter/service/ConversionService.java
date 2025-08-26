@@ -1,5 +1,6 @@
 package v1.attijariconverter.service;
 
+import org.springframework.beans.factory.annotation.Value;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
 import v1.attijariconverter.model.ConversionHistory;
@@ -36,6 +37,12 @@ public class ConversionService {
 
     @Autowired
     private MXParsingService mxParsingService;
+
+    @Value("${swift.receiver.bic:BMCEMAMCXXX}")
+    private String receiverBic;
+
+    @Value("${swift.block2.suffix:N}")
+    private String block2Suffix;
 
     public static class ConversionResult {
         private final boolean success;
@@ -99,11 +106,11 @@ public class ConversionService {
         StringBuilder mt101 = new StringBuilder();
 
         // Bloc 1: Basic Header Block (obligatoire)
-        String bloc1 = generateBloc1();
+        String bloc1 = generateBloc1(mxMessage);
         mt101.append(bloc1).append("\n");
 
         // Bloc 2: Application Header Block (obligatoire)
-        String bloc2 = generateBloc2();
+        String bloc2 = generateBloc2(mxMessage);
         mt101.append(bloc2).append("\n");
 
         // Bloc 3: User Header Block (optionnel)
@@ -123,14 +130,66 @@ public class ConversionService {
         return mt101.toString();
     }
 
-    private String generateBloc1() {
-        // {1:F01BANKBEBBAXXX1234567890}
-        return "{1:F01BMCEMAMCXXX1234567890}";
+    private String generateBloc1(MXMessage mxMessage) {
+        // Déterminer le BIC du débiteur
+        String bic = mxMessage != null ? mxMessage.getDebtorBIC() : null;
+        if ((bic == null || bic.isBlank()) && mxMessage != null && mxMessage.getPaymentInstructions() != null && !mxMessage.getPaymentInstructions().isEmpty()) {
+            // fallback: essayer le BIC débiteur au niveau transaction
+            String fromPayment = mxMessage.getPaymentInstructions().get(0).getDebtorBIC();
+            if (fromPayment != null && !fromPayment.isBlank()) bic = fromPayment;
+        }
+        // Valeur par défaut si introuvable
+        if (bic == null || bic.isBlank()) bic = "BMCEMAMCXXX";
+        // Normaliser: si BIC8, ajouter XXX
+        String normBic = bic.trim();
+        if (normBic.length() == 8) normBic = normBic + "XXX";
+        // Conserver 11 caractères max
+        if (normBic.length() > 11) normBic = normBic.substring(0, 11);
+        // Session/Sequence (10 chiffres)
+        String sessionSequence = "1234567890";
+        return "{1:F01" + normBic + sessionSequence + "}";
     }
 
-    private String generateBloc2() {
-        // {2:I101BANKFRPPXXXXN}
-        return "{2:I101BMCEMAMCXXXXN}";
+    private String generateBloc2(MXMessage mxMessage) {
+        // BIC receiver = BIC du destinataire (Créditeur Agent)
+        String bic = null;
+        String source = null;
+        if (mxMessage != null && mxMessage.getPaymentInstructions() != null && !mxMessage.getPaymentInstructions().isEmpty()) {
+            MXMessage.PaymentInstruction p = mxMessage.getPaymentInstructions().get(0);
+            if (p.getCreditorBIC() != null && !p.getCreditorBIC().isBlank()) {
+                bic = p.getCreditorBIC();
+                source = "CdtrAgt";
+            }
+        }
+        // Fallback vers DbtrAgt si manquant
+        if ((bic == null || bic.isBlank()) && mxMessage != null) {
+            if (mxMessage.getDebtorBIC() != null && !mxMessage.getDebtorBIC().isBlank()) {
+                bic = mxMessage.getDebtorBIC();
+                source = "DbtrAgt(Header)";
+            } else if (mxMessage.getPaymentInstructions() != null && !mxMessage.getPaymentInstructions().isEmpty()) {
+                String fromPayment = mxMessage.getPaymentInstructions().get(0).getDebtorBIC();
+                if (fromPayment != null && !fromPayment.isBlank()) {
+                    bic = fromPayment;
+                    source = "DbtrAgt(Payment)";
+                }
+            }
+        }
+        // Fallback vers config si toujours manquant
+        if (bic == null || bic.isBlank()) {
+            bic = receiverBic != null ? receiverBic : "BMCEMAMCXXX";
+            source = "ConfigFallback";
+        }
+
+        String b = bic.trim();
+        if (b.length() < 8) {
+            b = String.format("%-8s", b).replace(' ', 'X');
+        }
+        String receiver12 = b.substring(0, 8) + "XXXX"; // LT addr
+        String priority = (block2Suffix != null && !block2Suffix.isBlank()) ? block2Suffix.trim() : "N";
+        if (priority.length() > 1) priority = priority.substring(0, 1);
+
+        logger.info("[MT101] Bloc2 receiver source={} bic={} -> {}{}{}", source, bic, "{2:I101", receiver12, priority + "}");
+        return "{2:I101" + receiver12 + priority + "}";
     }
 
     private String generateBloc3() {

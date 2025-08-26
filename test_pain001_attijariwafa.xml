@@ -1,0 +1,115 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<Document xmlns="urn:iso:std:iso:20022:tech:xsd:pain.001.001.03" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance">
+    <CstmrCdtTrfInitn>
+        <!-- Message Identification -->
+        <GrpHdr>
+            <MsgId>INTTMA200033</MsgId>
+            <CreDtTm>2024-08-25T10:30:00</CreDtTm>
+            <NbOfTxs>1</NbOfTxs>
+            <CtrlSum>32840.79</CtrlSum>
+            <InitgPty>
+                <Nm>CMM MMM MA</Nm>
+                <Id>
+                    <OrgId>
+                        <Othr>
+                            <Id>007700000200200000091111</Id>
+                        </Othr>
+                    </OrgId>
+                </Id>
+            </InitgPty>
+        </GrpHdr>
+
+        <!-- Payment Information -->
+        <PmtInf>
+            <PmtInfId>PNUM13000055</PmtInfId>
+            <PmtMtd>TRF</PmtMtd>
+            <BtchBookg>false</BtchBookg>
+            <NbOfTxs>1</NbOfTxs>
+            <CtrlSum>32840.79</CtrlSum>
+            <PmtTpInf>
+                <SvcLvl>
+                    <Cd>SEPA</Cd>
+                </SvcLvl>
+                <LclInstrm>
+                    <Cd>INTC</Cd>
+                </LclInstrm>
+                <CtgyPurp>
+                    <Cd>SUPP</Cd>
+                </CtgyPurp>
+            </PmtTpInf>
+            <ReqdExctnDt>2024-08-25</ReqdExctnDt>
+
+            <!-- Debtor (Ordering Customer) -->
+            <Dbtr>
+                <Nm>CMM MMM MA</Nm>
+                <PstlAdr>
+                    <Ctry>MA</Ctry>
+                </PstlAdr>
+            </Dbtr>
+            <DbtrAcct>
+                <Id>
+                    <Othr>
+                        <Id>007700000200200000091111</Id>
+                    </Othr>
+                </Id>
+                <Ccy>EUR</Ccy>
+            </DbtrAcct>
+            <DbtrAgt>
+                <FinInstnId>
+                    <BIC>BCMAMAMC</BIC>
+                    <Nm>BANQUE COMMERCIALE DU MAROC</Nm>
+                </FinInstnId>
+            </DbtrAgt>
+            <ChrgBr>OUR</ChrgBr>
+
+            <!-- Credit Transfer Transaction -->
+            <CdtTrfTxInf>
+                <PmtId>
+                    <InstrId>PNUM13000055</InstrId>
+                    <EndToEndId>PNUM13000055</EndToEndId>
+                </PmtId>
+                <PmtTpInf>
+                    <LclInstrm>
+                        <Cd>INTC</Cd>
+                    </LclInstrm>
+                </PmtTpInf>
+                <Amt>
+                    <InstdAmt Ccy="EUR">32840.79</InstdAmt>
+                </Amt>
+                <ChrgBr>OUR</ChrgBr>
+
+                <!-- Creditor Agent (Account With Institution) -->
+                <CdtrAgt>
+                    <FinInstnId>
+                        <BIC>AIBSMAMT</BIC>
+                        <Nm>ATTIJARIWAFA BANK SMMT</Nm>
+                    </FinInstnId>
+                </CdtrAgt>
+
+                <!-- Creditor (Beneficiary) -->
+                <Cdtr>
+                    <Nm>EUROGATE TANGER SA</Nm>
+                    <PstlAdr>
+                        <AdrLine>ZONE FRANCHE DE KSAR AL MAJAZ OUAD</AdrLine>
+                        <AdrLine>R MEL TANGER</AdrLine>
+                        <Ctry>MA</Ctry>
+                    </PstlAdr>
+                </Cdtr>
+                <CdtrAcct>
+                    <Id>
+                        <Othr>
+                            <Id>605640000010200246122274</Id>
+                        </Othr>
+                    </Id>
+                    <Ccy>EUR</Ccy>
+                </CdtrAcct>
+
+                <!-- Remittance Information -->
+                <RmtInf>
+                    <Ustrd>PNUM13000055</Ustrd>
+                </RmtInf>
+            </CdtTrfTxInf>
+        </PmtInf>
+    </CstmrCdtTrfInitn>
+</Document>
+

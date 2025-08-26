@@ -88,11 +88,27 @@ public class MXToMTConversionService {
     private String buildMT101Message(MTMessage mtMessage) {
         StringBuilder mt101 = new StringBuilder();
 
-        // Bloc 1: Basic Header Block
-        mt101.append("{1:F01BMCEMAMCXXX1234567890}\n");
+        // Bloc 1: Basic Header Block - Utiliser le BIC du débiteur dynamiquement
+        String debtorBIC = mtMessage.getOrderingInstitution();
+        if (debtorBIC != null && !debtorBIC.trim().isEmpty()) {
+            // Formater le BIC pour le bloc 1 (F01 + BIC + numéro de session)
+            String sessionNumber = "1234567890"; // Ou générer dynamiquement
+            mt101.append("{1:F01").append(debtorBIC.trim()).append(sessionNumber).append("}");
+        } else {
+            // Fallback vers la valeur par défaut si pas de BIC
+            mt101.append("{1:F01BMCEMAMCXXX1234567890}");
+        }
 
-        // Bloc 2: Application Header Block
-        mt101.append("{2:I101BMCEMAMCXXXXN}\n");
+        // Bloc 2: Application Header Block - BIC du destinataire (Créditeur Agent)
+        String receiverBic = mtMessage.getAccountWithInstitution();
+        if (receiverBic == null || receiverBic.trim().isEmpty()) {
+            receiverBic = "BMCEMAMCXXX"; // fallback
+        }
+        String norm = receiverBic.trim();
+        if (norm.length() == 8) norm += "XXX"; // normaliser à 11
+        if (norm.length() > 11) norm = norm.substring(0, 11);
+        String receiver12 = norm.substring(0, 8) + "XXXX"; // 12 pour bloc 2 entrée
+        mt101.append("{2:I101").append(receiver12).append("N}");
 
         // Bloc 3: User Header Block (optionnel)
         String timestamp = LocalDateTime.now().format(DateTimeFormatter.ofPattern("yyyyMMddHHmmss"));

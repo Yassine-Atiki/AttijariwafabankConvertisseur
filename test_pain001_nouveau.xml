@@ -1,0 +1,73 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<Document xmlns="urn:iso:std:iso:20022:tech:xsd:pain.001.001.03">
+    <CstmrCdtTrfInitn>
+        <GrpHdr>
+            <MsgId>REF20250826104049</MsgId>
+            <CreDtTm>2025-08-26T10:40:49</CreDtTm>
+            <NbOfTxs>1</NbOfTxs>
+            <CtrlSum>32840.79</CtrlSum>
+            <InitgPty>
+                <Nm>CMM MMM MA</Nm>
+                <Id>
+                    <OrgId>
+                        <BICOrBEI>BMCEMAMCXXX</BICOrBEI>
+                    </OrgId>
+                </Id>
+            </InitgPty>
+        </GrpHdr>
+        <PmtInf>
+            <PmtInfId>PNUM13000055</PmtInfId>
+            <PmtMtd>TRF</PmtMtd>
+            <ReqdExctnDt>2024-08-25</ReqdExctnDt>
+            <Dbtr>
+                <Nm>CMM MMM MA</Nm>
+                <PstlAdr>
+                    <Ctry>MA</Ctry>
+                </PstlAdr>
+            </Dbtr>
+            <DbtrAcct>
+                <Id>
+                    <IBAN>MA64007700000200200000091111</IBAN>
+                </Id>
+                <Ccy>EUR</Ccy>
+            </DbtrAcct>
+            <DbtrAgt>
+                <FinInstnId>
+                    <BIC>BMCEMAMCXXX</BIC>
+                </FinInstnId>
+            </DbtrAgt>
+            <ChrgBr>OUR</ChrgBr>
+            <CdtTrfTxInf>
+                <PmtId>
+                    <InstrId>INTTMA200033</InstrId>
+                    <EndToEndId>PNUM13000055</EndToEndId>
+                </PmtId>
+                <Amt>
+                    <InstdAmt Ccy="EUR">32840.79</InstdAmt>
+                </Amt>
+                <CdtrAgt>
+                    <FinInstnId>
+                        <BIC>AIBSMAMT</BIC>
+                    </FinInstnId>
+                </CdtrAgt>
+                <Cdtr>
+                    <Nm>EUROGATE TANGER SA</Nm>
+                    <PstlAdr>
+                        <AdrLine>ZONE FRANCHE DE KSAR AL MAJAZ OUAD</AdrLine>
+                        <AdrLine>R MEL TANGER MA</AdrLine>
+                        <Ctry>MA</Ctry>
+                    </PstlAdr>
+                </Cdtr>
+                <CdtrAcct>
+                    <Id>
+                        <IBAN>MA64605640000010200246122274</IBAN>
+                    </Id>
+                </CdtrAcct>
+                <RmtInf>
+                    <Ustrd>PNUM13000055</Ustrd>
+                </RmtInf>
+            </CdtTrfTxInf>
+        </PmtInf>
+    </CstmrCdtTrfInitn>
+</Document>
+
