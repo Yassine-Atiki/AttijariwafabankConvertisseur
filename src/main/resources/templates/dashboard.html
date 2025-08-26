@@ -202,6 +202,28 @@
                             <div class="muted" id="dateInfo">Statistiques du jour</div>
                         </div>
                     </div>
+
+                    <!-- Nouveau: Filtrer par plage de dates -->
+                    <div class="panel" style="margin-top:12px;" aria-label="Filtrer par plage de dates">
+                        <div class="cal-head">
+                            <span class="month">Filtrer par plage</span>
+                        </div>
+                        <div style="padding:12px; display:grid; grid-template-columns: 1fr 1fr; gap:8px; align-items:end;">
+                            <div>
+                                <label for="rangeFrom" style="display:block;font-size:12px;color:#555;margin-bottom:4px;">Du</label>
+                                <input type="date" id="rangeFrom" style="width:100%; padding:6px; border:1px solid #ccc; border-radius:6px;" />
+                            </div>
+                            <div>
+                                <label for="rangeTo" style="display:block;font-size:12px;color:#555;margin-bottom:4px;">Au</label>
+                                <input type="date" id="rangeTo" style="width:100%; padding:6px; border:1px solid #ccc; border-radius:6px;" />
+                            </div>
+                            <div style="grid-column: span 2; display:flex; gap:8px;">
+                                <button class="btn btn-primary" type="button" onclick="applyRange()">Appliquer</button>
+                                <button class="btn btn-outline" type="button" onclick="clearRange()">Réinitialiser</button>
+                            </div>
+                            <div id="rangeInfo" class="muted" style="grid-column: span 2;"></div>
+                        </div>
+                    </div>
                 </aside>
             </div>
         </section>
@@ -841,6 +863,55 @@ async function loadStatsForDate(dateStr) {
     }
 }
 
+// Charger les stats pour une plage de dates [from, to]
+async function loadStatsForRange(fromStr, toStr){
+    try {
+        const res = await fetch(`/api/stats/by-range?from=${encodeURIComponent(fromStr)}&to=${encodeURIComponent(toStr)}`);
+        if (!res.ok) throw new Error('HTTP ' + res.status);
+        const data = await res.json();
+        const totalEl = document.getElementById('totalCount');
+        const validEl = document.getElementById('validCount');
+        const invalidEl = document.getElementById('invalidCount');
+        if (totalEl) totalEl.innerText = data.total ?? 0;
+        if (validEl) validEl.innerText = data.valid ?? 0;
+        if (invalidEl) invalidEl.innerText = data.error ?? 0;
+        const info = document.getElementById('dateInfo');
+        if (info) info.innerText = `Statistiques du ${fromStr} au ${toStr}`;
+        const rinfo = document.getElementById('rangeInfo');
+        if (rinfo) rinfo.innerText = `Plage appliquée: ${fromStr} → ${toStr}`;
+        renderHomeChart();
+    } catch (e) {
+        console.error('Erreur stats by-range:', e);
+        pushMessage('error', 'Erreur lors du chargement des statistiques de plage: ' + e.message);
+    }
+}
+
+function applyRange(){
+    const fromEl = document.getElementById('rangeFrom');
+    const toEl = document.getElementById('rangeTo');
+    const from = fromEl?.value;
+    const to = toEl?.value;
+    if (!from || !to) { pushMessage('warn','Veuillez sélectionner une plage (Du/Au).'); return; }
+    if (to < from) {
+        // inverser si nécessaire, côté UI
+        loadStatsForRange(to, from);
+    } else {
+        loadStatsForRange(from, to);
+    }
+}
+
+function clearRange(){
+    const fromEl = document.getElementById('rangeFrom');
+    const toEl = document.getElementById('rangeTo');
+    if (fromEl) fromEl.value = '';
+    if (toEl) toEl.value = '';
+    const rinfo = document.getElementById('rangeInfo');
+    if (rinfo) rinfo.innerText = '';
+    // Revenir sur la date du jour
+    const t = todayStr();
+    loadStatsForDate(t);
+}
+
 // Calendrier moderne intégré (toujours visible)
 let cwCurrent = new Date(); // mois affiché (1er du mois)
 let cwSelected = null;      // date sélectionnée
@@ -951,6 +1022,13 @@ document.addEventListener('DOMContentLoaded', function() {
 
     renderCalendarWidget();
     loadStatsForDate(toISODateStr(now));
+
+    // Limiter les dates max des inputs de plage à aujourd'hui
+    const max = todayStr();
+    const rf = document.getElementById('rangeFrom');
+    const rt = document.getElementById('rangeTo');
+    if (rf) rf.max = max;
+    if (rt) rt.max = max;
 });
 function pushMessage(type, text){
   const box = document.getElementById('admin-messages');

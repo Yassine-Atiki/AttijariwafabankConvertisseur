@@ -38,6 +38,21 @@ public class StatsController {
         public long getError() { return error; }
     }
 
+    public static class RangeStats {
+        private long total;
+        private long valid;
+        private long error;
+
+        public RangeStats(long total, long valid, long error) {
+            this.total = total;
+            this.valid = valid;
+            this.error = error;
+        }
+        public long getTotal() { return total; }
+        public long getValid() { return valid; }
+        public long getError() { return error; }
+    }
+
     @GetMapping("/by-date")
     public ResponseEntity<DayStats> getStatsByDate(@RequestParam("date") String dateStr) {
         LocalDate date = LocalDate.parse(dateStr);
@@ -54,5 +69,29 @@ public class StatsController {
         long error = list.stream().filter(h -> "ERROR".equalsIgnoreCase(h.getStatus())).count();
 
         return ResponseEntity.ok(new DayStats(total, valid, error));
+    }
+
+    @GetMapping("/by-range")
+    public ResponseEntity<RangeStats> getStatsByRange(@RequestParam("from") String fromStr,
+                                                      @RequestParam("to") String toStr) {
+        LocalDate from = LocalDate.parse(fromStr);
+        LocalDate to = LocalDate.parse(toStr);
+        if (to.isBefore(from)) {
+            // Inverser si nécessaire
+            LocalDate tmp = from; from = to; to = tmp;
+        }
+        LocalDateTime start = from.atStartOfDay();
+        LocalDateTime endExclusive = to.plusDays(1).atStartOfDay();
+
+        Authentication auth = SecurityContextHolder.getContext().getAuthentication();
+        String username = (auth != null && auth.getName() != null) ? auth.getName() : "anonymous";
+
+        List<ConversionHistory> list = conversionHistoryRepository
+                .findByOwnerUsernameAndConversionDateBetween(username, start, endExclusive);
+        long total = list.size();
+        long valid = list.stream().filter(h -> "SUCCESS".equalsIgnoreCase(h.getStatus())).count();
+        long error = list.stream().filter(h -> "ERROR".equalsIgnoreCase(h.getStatus())).count();
+
+        return ResponseEntity.ok(new RangeStats(total, valid, error));
     }
 }

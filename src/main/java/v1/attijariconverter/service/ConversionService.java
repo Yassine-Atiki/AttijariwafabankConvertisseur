@@ -195,7 +195,7 @@ public class ConversionService {
     private String generateBloc3() {
         // {3:{113:XXXX}{108:REF12345678}} (optionnel)
         String timestamp = LocalDateTime.now().format(DateTimeFormatter.ofPattern("yyyyMMddHHmmss"));
-        return "{3:{113:SEPA}{108:REF" + timestamp + "}}";
+        return "{3:{108:REF" + timestamp + "}}";
     }
 
     private String generateBloc4(MXMessage mxMessage, List<String> validationErrors) {
