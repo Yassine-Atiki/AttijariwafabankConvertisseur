@@ -7,6 +7,10 @@ import org.springframework.security.core.context.SecurityContextHolder;
 import org.springframework.web.bind.annotation.*;
 import v1.attijariconverter.service.ConversionService;
 
+/**
+ * Endpoints d'administration pour gérer l'historique des conversions.
+ * Réservé aux utilisateurs ROLE_ADMIN (contrôle effectué manuellement dans chaque méthode).
+ */
 @RestController
 @RequestMapping("/api/admin/history")
 public class AdminHistoryController {
@@ -18,6 +22,10 @@ public class AdminHistoryController {
         return auth != null && auth.getAuthorities().stream().anyMatch(a -> "ROLE_ADMIN".equals(a.getAuthority()));
     }
 
+    /**
+     * Supprime l'historique du compte courant (si admin) afin de tester / nettoyer.
+     * @return message avec nombre d'entrées supprimées
+     */
     @DeleteMapping("/self")
     public ResponseEntity<?> deleteOwn(){
         Authentication auth = SecurityContextHolder.getContext().getAuthentication();
@@ -26,6 +34,10 @@ public class AdminHistoryController {
         return ResponseEntity.ok("Historique personnel supprimé: " + count + " entrées");
     }
 
+    /**
+     * Supprime tout l'historique d'un utilisateur ciblé.
+     * @param username identifiant utilisateur
+     */
     @DeleteMapping("/user/{username}")
     public ResponseEntity<?> deleteUser(@PathVariable String username){
         Authentication auth = SecurityContextHolder.getContext().getAuthentication();
@@ -34,6 +46,10 @@ public class AdminHistoryController {
         return ResponseEntity.ok("Historique de '"+username+"' supprimé: " + count + " entrées");
     }
 
+    /**
+     * Supprime une entrée individuelle par identifiant Mongo.
+     * @param id identifiant de l'entrée
+     */
     @DeleteMapping("/entry/{id}")
     public ResponseEntity<?> deleteEntry(@PathVariable String id){
         Authentication auth = SecurityContextHolder.getContext().getAuthentication();

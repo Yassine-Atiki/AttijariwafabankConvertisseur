@@ -18,6 +18,13 @@ import java.nio.charset.StandardCharsets;
 import java.util.List;
 import java.util.Optional;
 
+/**
+ * Contrôleur REST pour:
+ * - Validation XSD simplifiée de fichiers pain.001
+ * - Conversion pain.001 -> MT101
+ * - Téléchargement du MT101 sauvegardé
+ * Exposé sous /api/conversion (CORS ouvert '*').
+ */
 @RestController
 @RequestMapping("/api/conversion")
 @CrossOrigin(origins = "*")
@@ -34,6 +41,13 @@ public class ConversionController {
     @Autowired
     private ConversionHistoryRepository conversionHistoryRepository;
 
+    /**
+     * DTO de réponse conversion.
+     * success = true si conversion MT101 aboutie.
+     * mtMessage = contenu SWIFT MT101 généré.
+     * errorMessage = message fonctionnel en cas d'échec.
+     * validationErrors = liste des erreurs (validation ou mapping).
+     */
     public static class ConversionResponse {
         private boolean success;
         private String mtMessage;
@@ -64,6 +78,12 @@ public class ConversionController {
         public void setValidationErrors(List<String> validationErrors) { this.validationErrors = validationErrors; }
     }
 
+    /**
+     * DTO de réponse validation XSD.
+     * valid = résultat booléen.
+     * message = résumé lisible.
+     * errors = liste détaillée.
+     */
     public static class ValidationResponse {
         private boolean valid;
         private String message;
@@ -88,6 +108,9 @@ public class ConversionController {
         public void setErrors(List<String> errors) { this.errors = errors; }
     }
 
+    /**
+     * Valide un fichier pain.001 uploadé (multipart).
+     */
     @PostMapping("/validate")
     public ResponseEntity<ValidationResponse> validatePain001(@RequestParam("file") MultipartFile file) {
         try {
@@ -117,6 +140,9 @@ public class ConversionController {
         }
     }
 
+    /**
+     * Convertit un fichier pain.001 (multipart) en MT101 après validation.
+     */
     @PostMapping("/convert")
     public ResponseEntity<ConversionResponse> convertToMT101(@RequestParam("file") MultipartFile file) {
         try {
@@ -163,6 +189,9 @@ public class ConversionController {
         }
     }
 
+    /**
+     * Convertit du XML pain.001 envoyé en texte brut (POST body) vers MT101.
+     */
     @PostMapping("/convert/text")
     public ResponseEntity<ConversionResponse> convertTextToMT101(@RequestBody String xmlContent) {
         try {
@@ -207,11 +236,18 @@ public class ConversionController {
         }
     }
 
+    /**
+     * Endpoint de diagnostic rapide.
+     */
     @GetMapping("/test")
     public ResponseEntity<String> testEndpoint() {
         return ResponseEntity.ok("API de conversion opérationnelle");
     }
 
+    /**
+     * Télécharge le MT101 précédemment généré (si disponible) pour un historique donné.
+     * @param id identifiant Mongo de l'historique
+     */
     @GetMapping("/history/{id}/download")
     public ResponseEntity<byte[]> downloadMt101(@PathVariable("id") String id) {
         try {

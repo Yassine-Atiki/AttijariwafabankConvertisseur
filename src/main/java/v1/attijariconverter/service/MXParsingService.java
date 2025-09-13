@@ -12,11 +12,24 @@ import javax.xml.parsers.DocumentBuilder;
 import javax.xml.parsers.DocumentBuilderFactory;
 import java.io.ByteArrayInputStream;
 
+/**
+ * Service responsable du parsing d'un fichier pain.001 (SEPA Credit Transfer).
+ * Utilise DOM pour extraire les informations nécessaires et construire un MXMessage.
+ * Hypothèses:
+ *  - Pas de gestion avancée des namespaces multiples.
+ *  - Prend le premier élément matching (getElementsByTagName) pour chaque tag.
+ *  - Loggue et relance une Exception si un élément critique manque.
+ */
 @Service
 public class MXParsingService {
 
     private static final Logger logger = LoggerFactory.getLogger(MXParsingService.class);
 
+    /**
+     * Parse le XML pain.001 et retourne un MXMessage peuplé.
+     * @param xmlContent contenu XML du fichier.
+     * @throws Exception si parsing impossible ou éléments obligatoires manquants.
+     */
     public MXMessage parseMXMessage(String xmlContent) throws Exception {
         try {
             DocumentBuilderFactory factory = DocumentBuilderFactory.newInstance();
@@ -98,6 +111,9 @@ public class MXParsingService {
         }
     }
 
+    /**
+     * Construit une PaymentInstruction à partir d'un noeud <CdtTrfTxInf> et de son parent <PmtInf>.
+     */
     private MXMessage.PaymentInstruction parsePaymentInstruction(Element cdtTrfTxInf, Element pmtInf) {
         MXMessage.PaymentInstruction instruction = new MXMessage.PaymentInstruction();
 
@@ -179,17 +195,20 @@ public class MXParsingService {
         return instruction;
     }
 
+    /** Récupère le premier élément enfant par tag (ou null). */
     private Element getElement(Element parent, String tagName) {
         if (parent == null) return null;
         NodeList nodeList = parent.getElementsByTagName(tagName);
         return nodeList.getLength() > 0 ? (Element) nodeList.item(0) : null;
     }
 
+    /** Récupère le premier élément global par tag. */
     private Element getElement(Document document, String tagName) {
         NodeList nodeList = document.getElementsByTagName(tagName);
         return nodeList.getLength() > 0 ? (Element) nodeList.item(0) : null;
     }
 
+    /** Valeur texte d'un sous-élément. */
     private String getTextContent(Element parent, String tagName) {
         if (parent == null) return null;
         Element element = getElement(parent, tagName);

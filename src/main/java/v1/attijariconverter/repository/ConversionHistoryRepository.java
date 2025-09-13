@@ -10,29 +10,44 @@ import v1.attijariconverter.model.ConversionHistory;
 import java.time.LocalDateTime;
 import java.util.List;
 
+/**
+ * Repository Spring Data Mongo pour la collection conversion_history.
+ * Méthodes dérivées générées automatiquement par convention de nommage.
+ */
 @Repository
 public interface ConversionHistoryRepository extends MongoRepository<ConversionHistory, String> {
 
+    /** Trouve toutes les conversions entre deux instants (tous utilisateurs). */
     List<ConversionHistory> findByConversionDateBetween(LocalDateTime start, LocalDateTime end);
 
+    /** Trouve par status global, tri décroissant. */
     List<ConversionHistory> findByStatusOrderByConversionDateDesc(String status);
 
+    /** 10 dernières conversions globales. */
     List<ConversionHistory> findTop10ByOrderByConversionDateDesc();
 
+    /** Conversions d'un utilisateur (tri descendant). */
     List<ConversionHistory> findByOwnerUsernameOrderByConversionDateDesc(String ownerUsername);
 
+    /** Conversions d'un utilisateur filtrées par status. */
     List<ConversionHistory> findByOwnerUsernameAndStatusOrderByConversionDateDesc(String ownerUsername, String status);
 
+    /** 10 dernières conversions d'un utilisateur. */
     List<ConversionHistory> findTop10ByOwnerUsernameOrderByConversionDateDesc(String ownerUsername);
 
+    /** Conversions d'un utilisateur sur intervalle temporel. */
     List<ConversionHistory> findByOwnerUsernameAndConversionDateBetween(String ownerUsername, LocalDateTime start, LocalDateTime end);
 
+    /** Historique de tous les autres utilisateurs (vue admin). */
     List<ConversionHistory> findByOwnerUsernameNotOrderByConversionDateDesc(String ownerUsername);
 
+    /** Suppression massive par owner. */
     long deleteByOwnerUsername(String ownerUsername);
 
+    /** Suppression des entrées orphelines (sans owner). */
     long deleteByOwnerUsernameIsNull();
 
+    /** Recherche des entrées orphelines (diagnostic / migration). */
     List<ConversionHistory> findByOwnerUsernameIsNull();
 
     // Méthodes de pagination ajoutées

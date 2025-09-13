@@ -27,6 +27,14 @@ import org.springframework.data.domain.PageRequest;
 import org.springframework.data.domain.Pageable;
 import org.springframework.data.domain.Sort;
 
+/**
+ * Service central pilotant:
+ *  - Parsing MX (pain.001) via MXParsingService
+ *  - Génération MT101 (construction manuelle blocs SWIFT)
+ *  - Validation structurée minimale du MT101
+ *  - Persistance historique (MongoDB)
+ * Fournit aussi des méthodes de statistiques / filtrage pour le dashboard et des opérations d'administration.
+ */
 @Service
 public class ConversionService {
 
@@ -44,6 +52,9 @@ public class ConversionService {
     @Value("${swift.block2.suffix:N}")
     private String block2Suffix;
 
+    /**
+     * Résultat immuable d'une tentative de conversion.
+     */
     public static class ConversionResult {
         private final boolean success;
         private final String mtMessage;
@@ -64,6 +75,14 @@ public class ConversionService {
         public List<String> getValidationErrors() { return validationErrors; }
     }
 
+    /**
+     * Convertit un contenu XML pain.001 en message MT101.
+     * Étapes:
+     *  1. Parsing -> MXMessage
+     *  2. Génération blocs SWIFT -> String
+     *  3. Validation structure résultante
+     *  4. Sauvegarde historique (succès/échec)
+     */
     public ConversionResult convertMXToMT101(String mxContent) {
         List<String> validationErrors = new ArrayList<>();
 
@@ -102,6 +121,9 @@ public class ConversionService {
         }
     }
 
+    /**
+     * Construit le message MT101 (SWIFT) en concaténant les blocs {1:}{2:}{3:}{4:}{5:}.
+     */
     private String generateMT101Message(MXMessage mxMessage, List<String> validationErrors) {
         StringBuilder mt101 = new StringBuilder();
 
@@ -247,6 +269,9 @@ public class ConversionService {
         return bloc4.toString();
     }
 
+    /**
+     * Construit la séquence par transaction (tags :21:, :32B:, :50K:, :59:, :71A:, :70:).
+     */
     private void generateSequenceB(StringBuilder bloc4, MXMessage.PaymentInstruction payment, List<String> validationErrors) {
         // :21: EndToEndId / InstructionId (obligatoire)
         String txnRef = payment.getInstructionId();
@@ -320,6 +345,9 @@ public class ConversionService {
 //        return "{5:{CHK:" + String.format("%09d", checksum) + "ABC}}";
 //    }
 
+    /**
+     * Validation minimale du squelette MT101 (présence blocs et tags obligatoires).
+     */
     private boolean validateMT101Structure(String mt101Message, List<String> validationErrors) {
         boolean isValid = true;
 
@@ -339,12 +367,14 @@ public class ConversionService {
         return isValid;
     }
 
+    /** Username courant (ou "anonymous"). */
     private String currentUsername() {
         Authentication auth = SecurityContextHolder.getContext().getAuthentication();
         if (auth == null || auth.getName() == null) return "anonymous";
         return auth.getName();
     }
 
+    /** Test rôle ADMIN. */
     private boolean isAdmin(Authentication auth){
         if(auth==null) return false;
         for(GrantedAuthority ga: auth.getAuthorities()){
@@ -353,7 +383,9 @@ public class ConversionService {
         return false;
     }
 
-    // Sauvegarde centralisée de l'historique
+    /**
+     * Persist une entrée d'historique générique (succès ou erreur).
+     */
     private void saveConversionHistory(MXMessage mxMessage,
                                        String mxRawContent,
                                        String mtMessage,
@@ -399,12 +431,13 @@ public class ConversionService {
         }
     }
 
-    // Sauvegarde dédiée pour échec de validation XSD côté MX
+    /** Sauvegarde dédiée aux échecs de validation côté MX (avant conversion). */
     public void saveValidationFailure(String mxRawContent, List<String> errors, String message) {
         saveConversionHistory(null, mxRawContent, null, "ERROR", message, null, errors);
     }
 
-    // Méthodes pour le dashboard
+    // ================= Méthodes Dashboard / Statistiques =================
+    /** Dernières conversions (TOP 10 par défaut côté repository). */
     public List<ConversionHistory> getConversionHistory() {
         try {
             return conversionHistoryRepository.findTop10ByOwnerUsernameOrderByConversionDateDesc(currentUsername());
@@ -414,7 +447,7 @@ public class ConversionService {
         }
     }
 
-    public List<ConversionHistory> getValidConversions() {
+    public List<ConversionHistory> getValidConversions() { // SUCCESS
         try {
             return conversionHistoryRepository.findByOwnerUsernameAndStatusOrderByConversionDateDesc(currentUsername(), "SUCCESS");
         } catch (Exception e) {
@@ -423,7 +456,7 @@ public class ConversionService {
         }
     }
 
-    public List<ConversionHistory> getInvalidConversions() {
+    public List<ConversionHistory> getInvalidConversions() { // ERROR
         try {
             return conversionHistoryRepository.findByOwnerUsernameAndStatusOrderByConversionDateDesc(currentUsername(), "ERROR");
         } catch (Exception e) {
@@ -500,6 +533,7 @@ public class ConversionService {
         }
     }
 
+    /** Historique des autres utilisateurs (réservé admin). */
     public List<ConversionHistory> getOtherUsersHistory(){
         try {
             Authentication auth = SecurityContextHolder.getContext().getAuthentication();
@@ -511,6 +545,7 @@ public class ConversionService {
         }
     }
 
+    // ================= Opérations d'administration =================
     public long deleteHistoryForUser(String username){
         try {
             if(username == null) {

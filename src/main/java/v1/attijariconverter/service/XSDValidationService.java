@@ -18,11 +18,23 @@ import java.io.InputStream;
 import java.util.ArrayList;
 import java.util.List;
 
+/**
+ * Service de validation basique des messages XML (pain.001).
+ * Implémente deux niveaux:
+ *  - validateMXMessage: vérifications génériques structurelles
+ *  - validatePain001: vérifications ciblées éléments obligatoires + structure
+ * NOTE: La validation XSD complète pourrait charger le schéma et utiliser Validator; ici simplifiée.
+ */
 @Service
 public class XSDValidationService {
 
     private final List<String> validationErrors = new ArrayList<>();
 
+    /**
+     * Valide un message MX de manière générique (présence d'éléments clés, namespace).
+     * @param xmlContent contenu XML brut
+     * @return résultat contenant validité + liste erreurs
+     */
     public ValidationResult validateMXMessage(String xmlContent) {
         validationErrors.clear();
 
@@ -65,7 +77,10 @@ public class XSDValidationService {
         }
     }
 
-    // Méthode spécifique pour valider les fichiers pain.001
+    /**
+     * Valide un message pain.001.001.03 (structure et éléments indispensables).
+     * @param xmlContent XML pain.001
+     */
     public ValidationResult validatePain001(String xmlContent) {
         validationErrors.clear();
 
@@ -90,6 +105,7 @@ public class XSDValidationService {
         }
     }
 
+    /** Vérifie la présence des tags obligatoires haut niveau (namespace, balises racine). */
     private void validatePain001Structure(String xmlContent) {
         // Vérification du namespace pain.001
         if (!xmlContent.contains("urn:iso:std:iso:20022:tech:xsd:pain.001.001.03")) {
@@ -110,7 +126,7 @@ public class XSDValidationService {
         }
 
         if (!xmlContent.contains("<PmtInf>")) {
-            validationErrors.add("Élément <PmtInf> (Payment Information) manquant");
+            validationErrors.add("Él��ment <PmtInf> (Payment Information) manquant");
         }
 
         if (!xmlContent.contains("<CdtTrfTxInf>")) {
@@ -118,6 +134,7 @@ public class XSDValidationService {
         }
     }
 
+    /** Vérifications internes supplémentaires (placeholder extensible). */
     private void validatePain001Content(Document document) {
         // Validation du contenu (structure interne)
         // Cette méthode peut être étendue pour des validations plus spécifiques
@@ -131,7 +148,9 @@ public class XSDValidationService {
         }
     }
 
-    // Classe pour le résultat de validation
+    /**
+     * Objet immuable représentant le résultat de validation.
+     */
     public static class ValidationResult {
         private final boolean valid;
         private final List<String> errors;
@@ -145,7 +164,9 @@ public class XSDValidationService {
         public List<String> getErrors() { return errors; }
     }
 
-    // Error handler personnalisé
+    /**
+     * Gestionnaire SAX personnalisé (non utilisé actuellement dans la validation simplifiée).
+     */
     private static class CustomErrorHandler implements ErrorHandler {
         private final List<String> errors = new ArrayList<>();
 

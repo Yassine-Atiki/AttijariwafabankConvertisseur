@@ -7,6 +7,11 @@ import lombok.AllArgsConstructor;
 import java.util.List;
 import java.util.ArrayList;
 
+/**
+ * Représentation simplifiée (POJO) d'un message pain.001 (SEPA Credit Transfer) après parsing.
+ * Contient également une liste d'instructions de paiement unitaires (PaymentInstruction).
+ * Sert d'étape intermédiaire avant la transformation vers MT101.
+ */
 @Data
 @NoArgsConstructor
 @AllArgsConstructor
@@ -29,9 +34,14 @@ public class MXMessage {
     private String currency;
     private String remittanceInformation;
 
-    // Liste des instructions de paiement
+    /**
+     * Instructions de paiement individuelles (chaque <CdtTrfTxInf> du XML source).
+     */
     private List<PaymentInstruction> paymentInstructions = new ArrayList<>();
 
+    /**
+     * Éléments d'une transaction crédit SEPA unique.
+     */
     @Data
     @NoArgsConstructor
     @AllArgsConstructor
@@ -53,7 +63,7 @@ public class MXMessage {
         private String ultimateDebtor;
         private String ultimateCreditor;
 
-        // Getters supplémentaires pour compatibilité
+        // Getters supplémentaires pour compatibilit��
         public String getInstructionId() { return instructionId; }
         public String getAmount() { return amount; }
         public String getCurrency() { return currency; }

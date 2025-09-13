@@ -15,6 +15,10 @@ import java.time.LocalDate;
 import java.time.LocalDateTime;
 import java.util.List;
 
+/**
+ * Contrôleur REST fournissant des statistiques journalières filtrées par utilisateur.
+ * (Actuellement, l'accès est autorisé à tous selon SecurityConfig, mais la sélection se fait via SecurityContext.)
+ */
 @RestController
 @RequestMapping("/api/stats")
 public class StatsController {
@@ -22,6 +26,12 @@ public class StatsController {
     @Autowired
     private ConversionHistoryRepository conversionHistoryRepository;
 
+    /**
+     * DTO minimal pour retourner les stats du jour demandé.
+     * total = nombre total de conversions
+     * valid = nombre de conversions succès
+     * error = nombre de conversions en erreur
+     */
     public static class DayStats {
         private long total;
         private long valid;
@@ -53,6 +63,10 @@ public class StatsController {
         public long getError() { return error; }
     }
 
+    /**
+     * Retourne les statistiques (total / SUCCESS / ERROR) pour l'utilisateur courant sur une date donnée.
+     * @param dateStr format ISO (YYYY-MM-DD)
+     */
     @GetMapping("/by-date")
     public ResponseEntity<DayStats> getStatsByDate(@RequestParam("date") String dateStr) {
         LocalDate date = LocalDate.parse(dateStr);

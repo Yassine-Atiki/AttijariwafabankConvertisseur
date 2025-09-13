@@ -10,16 +10,28 @@ import java.time.LocalDateTime;
 import java.time.format.DateTimeFormatter;
 import java.util.List;
 
+/**
+ * Service dédié à la transformation d'un objet MXMessage (pain.001 parsé)
+ * en chaîne SWIFT MT101 au format texte (blocs {1:} à {5:}).
+ * Ne réalise ni parsing XML, ni persistance: pure logique de mapping / formatting.
+ */
 @Service
 public class MXToMTConversionService {
 
     private static final Logger logger = LoggerFactory.getLogger(MXToMTConversionService.class);
 
+    /**
+     * Point d'entrée utilitaire: prend un MXMessage et retourne le MT101 texte.
+     */
     public String convertMXToMT101(MXMessage mxMessage) {
         MTMessage mtMessage = convertToMTMessage(mxMessage);
         return buildMT101Message(mtMessage);
     }
 
+    /**
+     * Construit un objet MTMessage intermédiaire sans valeurs par défaut forcées.
+     * Filtre champs vides pour éviter d'insérer des tags non conformes.
+     */
     private MTMessage convertToMTMessage(MXMessage mxMessage) {
         MTMessage mtMessage = new MTMessage();
 
@@ -85,6 +97,11 @@ public class MXToMTConversionService {
         return mtMessage;
     }
 
+    /**
+     * Assemble la structure SWIFT (blocs + tags) à partir du MTMessage.
+     * - Ajoute un User Header Block {3:} avec référence horodatée.
+     * - Calcule un checksum simple pour le bloc 5.
+     */
     private String buildMT101Message(MTMessage mtMessage) {
         StringBuilder mt101 = new StringBuilder();
 
@@ -163,6 +180,9 @@ public class MXToMTConversionService {
         return mt101.toString();
     }
 
+    /**
+     * Normalise une date AAAA-MM-JJ -> AAAAMMJJ (sinon null si invalide).
+     */
     private String formatDateForMT(String isoDate) {
         if (isoDate == null || isoDate.trim().isEmpty()) {
             return null; // pas de fallback
@@ -176,6 +196,9 @@ public class MXToMTConversionService {
         }
     }
 
+    /**
+     * Formate le donneur d'ordre (nom + IBAN éventuel sur ligne suivante).
+     */
     private String formatOrderingCustomer(String debtorName, String debtorAccount) {
         String name = (debtorName != null && !debtorName.trim().isEmpty()) ? debtorName.trim() : null;
         String acc = (debtorAccount != null && !debtorAccount.trim().isEmpty()) ? debtorAccount.trim() : null;
@@ -183,6 +206,9 @@ public class MXToMTConversionService {
         return acc == null ? name : name + "\n" + acc;
     }
 
+    /**
+     * Formate le bénéficiaire (nom + IBAN éventuel).
+     */
     private String formatBeneficiary(String creditorName, String creditorAccount) {
         String name = (creditorName != null && !creditorName.trim().isEmpty()) ? creditorName.trim() : null;
         String acc = (creditorAccount != null && !creditorAccount.trim().isEmpty()) ? creditorAccount.trim() : null;
@@ -190,6 +216,9 @@ public class MXToMTConversionService {
         return acc == null ? name : name + "\n" + acc;
     }
 
+    /**
+     * Concatène devise + montant (virgule décimale) pour :32B:.
+     */
     private String formatCurrencyAmount(String currency, String amount) {
         if (currency == null || currency.trim().isEmpty() || amount == null || amount.trim().isEmpty()) {
             return null;

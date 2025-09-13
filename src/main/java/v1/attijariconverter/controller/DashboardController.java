@@ -3,20 +3,22 @@ package v1.attijariconverter.controller;
 import org.springframework.stereotype.Controller;
 import org.springframework.ui.Model;
 import org.springframework.web.bind.annotation.GetMapping;
-import org.springframework.web.bind.annotation.RequestParam;
+import org.springframework.web.bind.annotation.RequestParam; // ajout
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.security.core.Authentication;
 import org.springframework.security.core.GrantedAuthority;
 import org.springframework.security.core.context.SecurityContextHolder;
-import org.springframework.data.domain.Page;
 import v1.attijariconverter.service.ConversionService;
-import v1.attijariconverter.model.ConversionHistory;
+import org.springframework.data.domain.Page; // ajout
+import v1.attijariconverter.model.ConversionHistory; // ajout
 
 @Controller
 public class DashboardController {
 
     @Autowired
     private ConversionService conversionService;
+
+    private static final int PAGE_SIZE = 10; // taille page par défaut
 
     private boolean isAdmin(Authentication auth){
         if(auth==null) return false;
@@ -26,8 +28,17 @@ public class DashboardController {
         return false;
     }
 
-    private void populateModel(Model model, int otherUsersPage, int historyPage) {
-        model.addAttribute("conversionHistory", conversionService.getConversionHistory());
+    private void populateModel(Model model, int historyPage, int otherUsersPage) {
+        // Historique personnel paginé
+        Page<ConversionHistory> history = conversionService.getConversionHistoryPaginated(historyPage, PAGE_SIZE);
+        model.addAttribute("conversionHistoryPaginated", history.getContent());
+        model.addAttribute("currentHistoryPage", history.getNumber());
+        model.addAttribute("totalHistoryPages", history.getTotalPages());
+        model.addAttribute("totalHistoryElements", history.getTotalElements());
+        model.addAttribute("hasPrevHistory", history.hasPrevious());
+        model.addAttribute("hasNextHistory", history.hasNext());
+
+        // Compteurs & listes dérivées
         model.addAttribute("totalConversions", conversionService.getTotalConversions());
         model.addAttribute("validConversions", conversionService.getSuccessfulConversions());
         model.addAttribute("invalidConversions", conversionService.getFailedConversions());
@@ -38,34 +49,16 @@ public class DashboardController {
             model.addAttribute("username", auth.getName());
             boolean admin = isAdmin(auth);
             model.addAttribute("isAdmin", admin);
-
-            // Pagination pour l'historique personnel (10 par page)
-            Page<ConversionHistory> historyPage_obj = conversionService.getConversionHistoryPaginated(historyPage, 10);
-            model.addAttribute("conversionHistoryPage", historyPage_obj);
-            model.addAttribute("conversionHistoryPaginated", historyPage_obj.getContent());
-            model.addAttribute("currentHistoryPage", historyPage);
-            model.addAttribute("totalHistoryPages", historyPage_obj.getTotalPages());
-            model.addAttribute("hasNextHistory", historyPage_obj.hasNext());
-            model.addAttribute("hasPrevHistory", historyPage_obj.hasPrevious());
-            model.addAttribute("totalHistoryElements", historyPage_obj.getTotalElements());
-
             if(admin){
-                // Pagination pour les autres utilisateurs (10 par page)
-                Page<ConversionHistory> otherUsersHistoryPage = conversionService.getOtherUsersHistoryPaginated(otherUsersPage, 10);
-                model.addAttribute("otherUsersHistoryPage", otherUsersHistoryPage);
-                model.addAttribute("otherUsersHistory", otherUsersHistoryPage.getContent());
-                model.addAttribute("currentOtherUsersPage", otherUsersPage);
-                model.addAttribute("totalOtherUsersPages", otherUsersHistoryPage.getTotalPages());
-                model.addAttribute("hasNextOtherUsers", otherUsersHistoryPage.hasNext());
-                model.addAttribute("hasPrevOtherUsers", otherUsersHistoryPage.hasPrevious());
-                model.addAttribute("totalOtherUsersElements", otherUsersHistoryPage.getTotalElements());
-
-                // Statistiques utilisateurs pour admin
-                model.addAttribute("totalActiveUsers", conversionService.getTotalActiveUsers());
-                model.addAttribute("totalUsersWithSuccess", conversionService.getTotalUsersWithSuccess());
-                model.addAttribute("totalUsersWithErrors", conversionService.getTotalUsersWithErrors());
-
-                // Liste des utilisateurs pour sélection dans l'accueil
+                // Historique des autres utilisateurs paginé
+                Page<ConversionHistory> others = conversionService.getOtherUsersHistoryPaginated(otherUsersPage, PAGE_SIZE);
+                model.addAttribute("otherUsersHistory", others.getContent());
+                model.addAttribute("currentOtherUsersPage", others.getNumber());
+                model.addAttribute("totalOtherUsersPages", others.getTotalPages());
+                model.addAttribute("totalOtherUsersElements", others.getTotalElements());
+                model.addAttribute("hasPrevOtherUsers", others.hasPrevious());
+                model.addAttribute("hasNextOtherUsers", others.hasNext());
+                // Liste des utilisateurs (sélecteur admin)
                 model.addAttribute("allUsers", conversionService.getAllUsers());
             }
         }
@@ -73,17 +66,17 @@ public class DashboardController {
 
     @GetMapping("/")
     public String dashboard(Model model,
-                           @RequestParam(defaultValue = "0") int otherUsersPage,
-                           @RequestParam(defaultValue = "0") int historyPage) {
-        populateModel(model, otherUsersPage, historyPage);
+                             @RequestParam(value = "historyPage", defaultValue = "0") int historyPage,
+                             @RequestParam(value = "otherUsersPage", defaultValue = "0") int otherUsersPage) {
+        populateModel(model, Math.max(historyPage,0), Math.max(otherUsersPage,0));
         return "dashboard";
     }
 
     @GetMapping("/dashboard")
     public String dashboardAlt(Model model,
-                              @RequestParam(defaultValue = "0") int otherUsersPage,
-                              @RequestParam(defaultValue = "0") int historyPage) {
-        populateModel(model, otherUsersPage, historyPage);
+                                @RequestParam(value = "historyPage", defaultValue = "0") int historyPage,
+                                @RequestParam(value = "otherUsersPage", defaultValue = "0") int otherUsersPage) {
+        populateModel(model, Math.max(historyPage,0), Math.max(otherUsersPage,0));
         return "dashboard";
     }
 
